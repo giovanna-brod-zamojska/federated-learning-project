@@ -3,3 +3,5 @@ torchvision==0.17.2
 numpy==1.26.4
 certifi==2025.4.26
 ipykernel==6.29.5 # for runnning jupyter notebooks
+
+loguru
