@@ -13,10 +13,21 @@ if not already installed,
 - python3.10 -m pip install --upgrade pip
 - pip install -r requirements.txt
 
-# Running
+# Running scripts
 
 - cd src
 - python main.py
+
+# Running notebooks
+
+Go to https://colab.research.google.com/
+Select: Github >
+Then:
+
+- Past the repository URL or select a user or organization
+- Select the Repository name
+- Select the Branch of the notebooks you want to run
+- Open the notebook of you interest and run it. (Example: click on _src/notebooks/test.ipynb_)
 
 # Resources
 
