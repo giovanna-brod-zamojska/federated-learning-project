@@ -47,6 +47,6 @@ Give to it at least Read-only permissions on the "Contents" section under "Permi
 
 # Resources
 
-### Ggoogle Colab and Github
+### Google Colab and Github
 
 https://colab.research.google.com/github/googlecolab/colabtools/blob/main/notebooks/colab-github-demo.ipynb#scrollTo=8J3NBxtZpPcK
