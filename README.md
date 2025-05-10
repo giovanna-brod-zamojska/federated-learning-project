@@ -8,13 +8,10 @@ git clone https://github.com/giovanna-brod-zamojska/federated-learning-project.g
 
 if not already installed,
 
-- download python version 3.10 (https://www.python.org/downloads/)
-  remember to install certificates after install, otherwise you get an error when running the code.
-  (SSL certificates problem on macos --> open a terminal and run: /Applications/Python\ 3.10/Install\ Certificates.command)
-
-- python3.10 -m venv venv
+- download python version 3.11 (https://www.python.org/downloads)
+- python3.11 -m venv venv
 - (macos) source venv/bin/activate | (windows) venv/Scripts/activate
-- python3.10 -m pip install --upgrade pip
+- python3.11 -m pip install --upgrade pip
 - pip install -r requirements.txt
 
 # Running scripts
