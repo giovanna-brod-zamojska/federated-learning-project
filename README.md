@@ -1,6 +1,6 @@
 # federated-learning-project
 
-# todo before running
+# Before running
 
 if not already installed,
 
@@ -13,7 +13,13 @@ if not already installed,
 - python3.10 -m pip install --upgrade pip
 - pip install -r requirements.txt
 
-# run
+# Running
 
 - cd src
 - python main.py
+
+# Resources
+
+### google colab integration with Github
+
+https://colab.research.google.com/github/googlecolab/colabtools/blob/main/notebooks/colab-github-demo.ipynb#scrollTo=8J3NBxtZpPcK
