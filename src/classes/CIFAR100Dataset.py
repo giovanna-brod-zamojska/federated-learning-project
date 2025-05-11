@@ -16,7 +16,7 @@ from torch.utils.data import Dataset, Subset, random_split
 # iid = manager.get_split(split_type='iid', num_clients=5)
 # noniid = manager.get_split(split_type='noniid', num_clients=5, nc=2)
 
-class FederatedCIFAR100DataLoader:
+class CIFAR100Dataset:
     """
     The CIFAR100 dataset is an image dataset made of 50000 images, and 100 labels ranging from class 0 to 99.
     Labels are equally distributed, therefore to each label correspond 500 images.
@@ -32,7 +32,14 @@ class FederatedCIFAR100DataLoader:
         self.dataset = self._load_or_download_dataset()
 
         self.train_data, self.test_data = self.dataset['train'], self.dataset['test']
-        self.class_count = 100
+        self.class_count = len(self.train_data.classes)
+
+    def get_num_labels(self) -> int:
+        """
+        Returns the number of classes in the dataset.
+        """
+        return self.class_count
+        
 
     def _load_or_download_dataset(self):
         # Define dataset paths
@@ -53,6 +60,8 @@ class FederatedCIFAR100DataLoader:
                 'train': datasets.CIFAR100(root=self.data_dir, train=True, download=True, transform=self.transform),
                 'test': datasets.CIFAR100(root=self.data_dir, train=False, download=True, transform=self.transform)
             }
+        
+    
 
     def _split_train_val(self):
         total_len = len(self.train_data)
