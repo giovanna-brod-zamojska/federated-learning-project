@@ -1,8 +1,15 @@
 import os
+import sys
+from pathlib import Path
+
+project_root = str(Path(__file__).resolve().parent.parent)
+sys.path.append(project_root)
+
 import torch
 import numpy as np
-from classes.CIFAR100Dataset import CIFAR100Dataset
-from classes.CentralizedBaselineTrainer import CentralizedBaselineTrainer
+from src.classes.cifar100_dataset import CIFAR100Dataset
+from src.classes.centralized_baseline_trainer import CentralizedBaselineTrainer
+
 
 def set_seed(seed):
     """Set random seed for reproducibility"""
@@ -12,17 +19,17 @@ def set_seed(seed):
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
 
+
 def main():
 
     # Load Dataset
     manager = CIFAR100Dataset()
     manager.print_stats()
-    
+
     # TODO:
     # classic = manager.get_split(split_type='classic')
     # iid = manager.get_split(split_type='iid', num_clients=100)
     # noniid = manager.get_split(split_type='noniid', num_clients=100, nc=2)
-
 
 
 if __name__ == "__main__":
