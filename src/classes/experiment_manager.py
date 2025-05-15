@@ -1,9 +1,14 @@
+import json
+import torch
 import wandb
-from typing import Dict, Any, List, Optional, Tuple
+import random
+import numpy as np
 from copy import deepcopy
 from torch.utils.data import DataLoader
+from typing import Dict, Any, List, Optional, Tuple
 
-# NOT ready - work in progress
+from src.classes.centralized_baseline_trainer import BaseTrainer
+from src.classes.cifar100_dataset import CIFAR100Dataset
 
 
 class ExperimentManager:
@@ -16,88 +21,133 @@ class ExperimentManager:
         self,
         base_config: Dict[str, Any],
         param_grid: List[Dict[str, Any]],
-        train_loader: DataLoader,
-        val_loader: DataLoader,
-        test_loader: Optional[DataLoader] = None,
         use_wandb: bool = False,
-        project_name: str = "vit_baseline_experiments",
+        project_name: str = "federated-learning-project-TEST",
+        group_name: str = "centralized_baseline",
+        do_test: bool = False,
     ):
-        """
-        Initializes the experiment manager.
+        self.do_test = do_test
 
-        Args:
-            base_config (dict): Default configuration for trainer.
-            param_grid (list of dicts): List of parameter combinations to run.
-            train_loader (DataLoader): Training data loader.
-            val_loader (DataLoader): Validation data loader.
-            test_loader (DataLoader, optional): Optional test data loader.
-            use_wandb (bool): Whether to use WandB for logging.
-            project_name (str): WandB project name.
-        """
         self.base_config = base_config
         self.param_grid = param_grid
-        self.train_loader = train_loader
-        self.val_loader = val_loader
-        self.test_loader = test_loader
+
         self.use_wandb = use_wandb
         self.project_name = project_name
-        self.results: List[Dict[str, Any]] = []
+        self.group_name = group_name
 
-    def run(self, trainer_class) -> Tuple[Dict[str, Any], float]:
-        """
-        Runs all experiments in the parameter grid and tracks the best configuration.
+    @staticmethod
+    def worker_init_fn(worker_id):
+        seed = torch.initial_seed() % 2**32  # Each worker gets a different seed
+        np.random.seed(seed)
+        random.seed(seed)
 
-        Returns:
-            Tuple of best configuration and best validation accuracy.
-        """
-        best_acc = 0.0
+    def setup_dataset(
+        self, dataset: CIFAR100Dataset, config
+    ) -> Tuple[CIFAR100Dataset, DataLoader, DataLoader, DataLoader]:
+
+        dataset_dict = dataset.get_split(split_type="classic")
+
+        train_loader = DataLoader(
+            dataset_dict["train"],
+            batch_size=config["batch_size"],
+            shuffle=True,
+            num_workers=config["num_workers"],
+            pin_memory=True,
+            worker_init_fn=self.worker_init_fn,
+        )
+        valid_loader = DataLoader(
+            dataset_dict["val"],
+            batch_size=config["batch_size"],
+            shuffle=False,
+            num_workers=config["num_workers"],
+            pin_memory=True,
+            worker_init_fn=self.worker_init_fn,
+        )
+        test_loader = DataLoader(
+            dataset_dict["test"],
+            batch_size=config["batch_size"],
+            shuffle=False,
+            num_workers=config["num_workers"],
+            pin_memory=True,
+            worker_init_fn=self.worker_init_fn,
+        )
+        print("Data loaders created.\n")
+
+        return dataset, train_loader, valid_loader, test_loader
+
+    def run(
+        self,
+        trainer_class: BaseTrainer,
+        dataset: CIFAR100Dataset,
+        run_name: str,
+        run_tags: List[str],
+        resume: Optional[str] = None,
+        metric_for_best_config: str = "accuracy",
+    ) -> Tuple[Dict[str, Any], float]:
+
+        results = []
+        best_metric = 0.0
         best_config = None
+        metric_for_best_model = metric_for_best_config
 
         for idx, params in enumerate(self.param_grid):
             config = deepcopy(self.base_config)
             config.update(params)
 
             print(
-                f"\n🔬 Running experiment {idx + 1}/{len(self.param_grid)} with config: {params}"
+                f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {params}"
             )
 
             if self.use_wandb:
-                wandb.init(project=self.project_name, config=config, reinit=True)
-                wandb.run.name = f"run_{idx + 1}"
+                run = wandb.init(
+                    project=self.project_name,
+                    group=self.group_name,  # Group runs under this name
+                    name=f"run_{run_name}_{idx + 1}",  # Name of the run
+                    config=config,
+                    tags=run_tags,
+                    dir="./wandb_logs",  # Directory to save logs
+                    reinit=True,  # Reinitialize WandB for each run
+                )
+
+            _, train_loader, val_loader, test_loader = self.setup_dataset(
+                dataset, config
+            )
 
             trainer = trainer_class(
-                model=None,
-                lr=config["lr"],
-                momentum=config["momentum"],
-                weight_decay=config["weight_decay"],
-                epochs=config["epochs"],
+                **config,
+                num_classes=dataset.get_num_labels(),
+                use_wandb=self.use_wandb,
+                metric_for_best_model=metric_for_best_model,
             )
-            trainer.change_classifier_layer(num_classes=config["num_classes"])
 
-            trainer.train(self.train_loader, self.val_loader)
+            if resume:
+                metric = trainer.train(
+                    train_loader,
+                    val_loader,
+                    resume=resume,
+                )
+            else:
+                metric = trainer.train(
+                    train_loader,
+                    val_loader,
+                )
 
-            test_acc = None
-            if self.test_loader:
-                test_acc = trainer.test(self.test_loader)
+            if self.do_test:
+                test_metrics = trainer.test(test_loader)
                 if self.use_wandb:
-                    wandb.log({"test_accuracy": test_acc})
+                    wandb.log({f"test_{k}": v for k, v in test_metrics.items()})
 
             if self.use_wandb:
                 wandb.finish()
 
-            result = {"config": config, "val_accuracy": test_acc}
-            self.results.append(result)
+            result = {"config": config, "val_metric": metric}
+            results.append(result)
 
-            if test_acc and test_acc > best_acc:
-                best_acc = test_acc
+            if metric and metric > best_metric:
+                best_metric = metric
                 best_config = config
 
-        print(f"\n🏆 Best configuration achieved accuracy {best_acc:.2f}%")
-        return best_config, best_acc
-
-    def get_all_results(self) -> List[Dict[str, Any]]:
-        """
-        Returns:
-            List of all experiment results with config and performance.
-        """
-        return self.results
+        print(
+            f"🏆Best config: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric:.2f}%"
+        )
+        return best_config, best_metric, results

@@ -1,6 +1,8 @@
 import os
+import wandb
 import torch
 from torch import nn
+from time import time
 from tqdm import tqdm
 from typing import Optional
 from torch.utils.data import DataLoader
@@ -17,13 +19,13 @@ class BaseTrainer:
         epochs: int,
         loss_fn: nn.Module,
         optimizer: nn.Module,
+        use_wandb: bool = False,
         scheduler: Optional[nn.Module] = None,
         checkpoint_dir: str = "./checkpoints",
-        model: Optional[nn.Module] = None,
+        metric_for_best_model: str = "accuracy",
     ):
-        if not self.device:
-            self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            print(f"Using device: {self.device}")
+        self.use_wandb = use_wandb
+        self.metric_for_best_model = metric_for_best_model
 
         self.epochs = epochs
         self.loss_fn = loss_fn
@@ -34,7 +36,7 @@ class BaseTrainer:
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         print(f"Checkpoint directory: {self.checkpoint_dir}")
 
-    # TODO: ????
+    # TODO: ???? Should we freeze all base layers and implement gradual unfreezing of layers?
     def freeze_base_layers(self, layers: Optional[int] = None) -> None:
 
         # Freeze all base layers in the "features" section of the model (the feature extractor) by setting requires_grad=False
@@ -108,11 +110,14 @@ class BaseTrainer:
                 )
 
         avg_loss = running_loss / len(loader)
-        accuracy = correct / total
-        return avg_loss, accuracy, metrics
+
+        return avg_loss, metrics.get_metrics()
 
     def train(
-        self, train_loader: DataLoader, val_loader: DataLoader, resume: str = None
+        self,
+        train_loader: DataLoader,
+        val_loader: DataLoader,
+        resume: str = None,
     ):
         """
         Train the model with the provided training and validation loaders.
@@ -125,53 +130,67 @@ class BaseTrainer:
 
         print("Training started")
 
-        start_epoch = 1
-        best_acc = 0.0
+        start_epoch, best_metric = 0, 0.0
 
-        if resume and os.path.exists(resume):
-            print(f"Resuming training from checkpoint: {resume}")
-            checkpoint = torch.load(resume, map_location=self.device)
-            self.model.load_state_dict(checkpoint["state_dict"])
-            self.optimizer.load_state_dict(checkpoint["optimizer"])
-            self.scheduler.load_state_dict(checkpoint["scheduler"])
+        if resume:
+            if os.path.isfile(resume):
+                print(f"Loading checkpoint from {resume}")
+                print(f"Resuming training from checkpoint: {resume}")
+                checkpoint = torch.load(resume, map_location=self.device)
 
-            start_epoch = checkpoint["epoch"]
-            best_acc = checkpoint["best_acc"]
+                self.model.load_state_dict(checkpoint["state_dict"])
+                self.optimizer.load_state_dict(checkpoint["optimizer"])
+                self.scheduler.load_state_dict(checkpoint["scheduler"])
 
-            print(
-                f"✔ Resumed from epoch {start_epoch}, best accuracy so far: {best_acc:.2f}%"
-            )
+                start_epoch = checkpoint["epoch"]
+                best_metric = checkpoint["best_metric"]
 
-        for epoch in range(start_epoch, self.epochs + 1):
+                print(
+                    f"✔ Resumed from epoch {start_epoch}, best  {self.metric_for_best_model} so far: {best_metric:.2f}%"
+                )
+            else:
+                print(f"Checkpoint not found at {resume}. Starting from scratch.")
+
+        print(f"Training. Start epoch: {start_epoch + 1}, End epoch: {self.epochs}.")
+
+        for epoch in range(start_epoch + 1, self.epochs + 1):
+            s = time()
+
             train_metrics = Metrics(self.device, num_classes=100)
             val_metrics = Metrics(self.device, num_classes=100)
 
-            train_loss, train_acc, train_metrics = self._train_or_eval_loop(
+            train_loss, train_metrics = self._train_or_eval_loop(
                 train_loader, is_train=True, metrics=train_metrics
             )
-            val_loss, val_acc, val_metrics = self._train_or_eval_loop(
+            val_loss, val_metrics = self._train_or_eval_loop(
                 val_loader, is_train=False, metrics=val_metrics
             )
 
             print(f"Epoch {epoch}:")
-            print(f"  Train -> Loss: {train_loss:.4f}, Accuracy: {train_acc*100:.2f}%")
-            print(f"  Val   -> Loss: {val_loss:.4f}, Accuracy: {val_acc*100:.2f}%")
+            print(
+                f"  Train -> Loss: {train_loss:.4f}, {self.metric_for_best_model}: {train_metrics[self.metric_for_best_model]*100:.2f}%"
+            )
+            print(
+                f"  Val   -> Loss: {val_loss:.4f}, {self.metric_for_best_model}: {val_metrics[self.metric_for_best_model]*100:.2f}%"
+            )
+            print(f"  Train Metrics: {train_metrics}")
+            print(f"  Val Metrics: {val_metrics}")
 
-            print(f"  Train Metrics: {train_metrics.get_metrics()}")
-            print(f"  Val Metrics: {val_metrics.get_metrics()}")
-
-            is_best = val_acc > best_acc
+            val_metric = val_metrics[self.metric_for_best_model].item()
+            is_best = val_metric > best_metric
             if is_best:
-                best_acc = val_acc
+                best_metric = val_metric
 
             # Update learning rate
-            self.scheduler.step()
+            if self.scheduler is not None:
+                self.scheduler.step()
 
             self.save_checkpoint(
                 {
-                    "epoch": epoch + 1,
+                    "epoch": epoch,
                     "state_dict": self.model.state_dict(),
-                    "best_acc": best_acc,
+                    "best_metric": best_metric,
+                    "best_metric_name": self.metric_for_best_model,
                     "optimizer": self.optimizer.state_dict(),
                     "scheduler": self.scheduler.state_dict(),
                 },
@@ -179,22 +198,39 @@ class BaseTrainer:
                 self.checkpoint_dir,
             )
 
-        print(f"Best Validation Accuracy: {best_acc:.2f}%")
+            if self.use_wandb:
+                logs_for_wandb = {f"train_{k}": v for k, v in train_metrics.items()}
+                logs_for_wandb.update({f"val_{k}": v for k, v in val_metrics.items()})
+                logs_for_wandb.update(
+                    {
+                        "train_loss": train_loss,
+                        "val_loss": val_loss,
+                        "elapsed_time": time() - s,
+                    }
+                )
+                wandb.log(logs_for_wandb)
+
+        print(
+            f"Best Validation Metric - {self.metric_for_best_model}: {best_metric:.2f}%"
+        )
+        return best_metric
 
     def test(self, test_loader: DataLoader):
         """
         Evaluate the model on the test dataset.
         """
-        test_metrics = Metrics(self.device, num_classes=100)
+        metrics = Metrics(self.device, num_classes=100)
 
-        test_loss, test_acc, test_metrics = self._train_or_eval_loop(
-            test_loader, is_train=False, metrics=test_metrics
+        test_loss, test_metrics = self._train_or_eval_loop(
+            test_loader, is_train=False, metrics=metrics
         )
 
-        print(f"  Test   -> Loss: {test_loss:.4f}, Accuracy: {test_acc*100:.2f}%")
-        print(f"  Test Metrics: {test_metrics.get_metrics()}")
+        print(
+            f"  Test -> Loss: {test_loss:.4f}, {self.metric_for_best_model}: {test_metrics[self.metric_for_best_model]*100:.2f}%"
+        )
+        print(f"  Test Metrics: {test_metrics}")
 
-        return test_acc
+        return test_metrics
 
     def save_checkpoint(self, state, is_best, checkpoint_dir):
         """Save checkpoint to disk"""
@@ -227,45 +263,59 @@ class CentralizedBaselineTrainer(BaseTrainer):
 
     def __init__(
         self,
-        model: Optional[nn.Module] = None,
+        num_classes: int,
         loss_fn: Optional[nn.Module] = None,
-        optimizer_class: Optional[torch.optim.Optimizer] = None,
-        lr: float = 0.001,
-        momentum: float = 0.9,
-        weight_decay: float = 0.0,
-        epochs: int = 10,
+        scheduler_type: str = "CosineAnnealingLR",
+        epochs: int = 1,
+        use_wandb: bool = False,
+        metric_for_best_model: str = "accuracy",
+        **kwargs,
     ):
-
-        if model is None:
-            self.model = torch.hub.load("facebookresearch/dino:main", "dino_vits16")
-            print("Loaded default DINO ViT-S/16 model.")
-            print("Model architecture:", self.model)
-        else:
-            self.model = model
-
+        self.model = torch.hub.load("facebookresearch/dino:main", "dino_vits16")
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model.to(self.device)
+        print("Loaded default DINO ViT-S/16 model. Model architecture:", self.model)
         print(f"Using device: {self.device}")
 
         loss_fn = loss_fn if loss_fn else nn.CrossEntropyLoss()
 
-        optimizer = (
-            optimizer_class
-            if optimizer_class
-            else torch.optim.SGD(
-                self.model.parameters(),
-                lr=lr,
-                momentum=momentum,
-                weight_decay=weight_decay,
+        # project guidelines: use SGD
+        # initialize optimizer with default parameters if not provided:
+
+        optimizer = torch.optim.SGD(
+            self.model.parameters(),
+            lr=kwargs.get("lr", 1e-3),
+            momentum=kwargs.get("momentum", 0),
+            weight_decay=kwargs.get("weight_decay", 0),
+            nesterov=kwargs.get("nesterov", False),
+        )
+
+        # project guidelines: we suggest you use the *cosine annealing scheduler*. Which scheduler performs best?
+        # Lets define a few schedulers to choose from in our experiments
+        # TODO: (Scheduler defined here are just examples, need to understand which scheduler to consider)
+
+        if scheduler_type == "CosineAnnealingLR":
+            scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
+                optimizer, T_max=epochs, eta_min=0
             )
-        )
+        elif scheduler_type == "StepLR":
+            scheduler = torch.optim.lr_scheduler.StepLR(
+                optimizer, step_size=epochs // 2, gamma=0.1
+            )
+        else:
+            raise ValueError(f"Unknown scheduler type: {scheduler_type}.")
 
-        scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, T_max=epochs, eta_min=0
-        )
+        base_trainer_args = {
+            "epochs": epochs,
+            "loss_fn": loss_fn,
+            "optimizer": optimizer,
+            "scheduler": scheduler,
+            "use_wandb": use_wandb,
+            "metric_for_best_model": metric_for_best_model,
+        }
 
-        super().__init__(
-            epochs=epochs, loss_fn=loss_fn, optimizer=optimizer, scheduler=scheduler
-        )
+        super().__init__(**base_trainer_args)
+
         print("Centralized Baseline Trainer initialized.")
-        print(f"Model architecture: {self.model}")
+
+        self.change_classifier_layer(num_classes=num_classes)

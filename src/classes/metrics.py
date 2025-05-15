@@ -1,8 +1,8 @@
 from torchmetrics.classification import (
     MulticlassPrecision,
-    MulticlassRecall,
-    MulticlassF1Score,
     MulticlassAccuracy,
+    MulticlassF1Score,
+    MulticlassRecall,
 )
 
 

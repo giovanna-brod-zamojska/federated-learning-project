@@ -27,7 +27,13 @@ class CIFAR100Dataset:
         self.data_dir = data_dir
         self.val_split = val_split
         self.seed = seed
-        self.transform = transforms.ToTensor()
+        self.transform = transforms.Compose(
+            [
+                transforms.RandomHorizontalFlip(),
+                transforms.RandomCrop(32, padding=4),
+                transforms.ToTensor(),
+            ]
+        )
 
         # Check if the dataset exists, if not, download it
         self.dataset = self._load_or_download_dataset()

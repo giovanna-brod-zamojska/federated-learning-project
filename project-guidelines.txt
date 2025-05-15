@@ -25,7 +25,7 @@ In particular, to simulate statistical heterogeneity, for CIFAR-100 your code sh
 
 2. CENTRALIZED BASELINE
 
-Train your models on CIFAR-100 using the *SGDM optimizer*, taking care of *searching for the best hyparameters*. 
+Train your models (-> which means the bsaeline one and the clients ones?) on CIFAR-100 using the *SGDM optimizer*, taking care of *searching for the best hyparameters*. 
 As a learning rate scheduler, we suggest you use the *cosine annealing scheduler*. 
 *Report the plots of test loss and test accuracy*. 
 How many epochs do you need? 
@@ -49,14 +49,14 @@ Implement the algorithm described in [10], fix K=100, C=0.1, adopt an iid shardi
 number of local steps. Run FedAvg on CIFAR-100 for a proper number of rounds (up to you to define, based on convergence 
 and time/compute budget).
 
-Simulate heterogeneous distributions
+Simulate heterogeneous distributions.
 Fix K=100 and C=0.1, and simulate several non-iid shardings of the training set of CIFAR-100, by fixing the number of 
 different labels clients have (Nc={1,5,10,50}). Then test the performance of FedAvg [10], comparing with the iid sharding, 
 varying the number of local steps J={4,8,16}. When increasing the number of local steps, remember to scale accordingly 
 the number of training rounds.
 Is there a noticeable difference in performance? Motivate your findings.
 
-Model Editing techniques in FL 
+Model Editing techniques in FL.
 Sparse fine-tuning consists in updating only a selected subset of parameters by eg. masking the gradients during GD. 
 This is typically done by:
 (step 0.: Either train or obtain in closed-form eg. Ridge, a classifier locally which will be then kept frozen at all 

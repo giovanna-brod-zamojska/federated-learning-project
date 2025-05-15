@@ -5,6 +5,11 @@ certifi==2025.4.26
 ipykernel==6.29.5
 torchmetrics==1.7.1
 
+# experiment logging
+wandb
+nbformat
+
+
 # same as colab:
 
 tqdm==4.67.1
