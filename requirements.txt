@@ -3,14 +3,21 @@ torchvision==0.17.2 # google colab torchvision 0.21.0+cu124
 numpy==1.26.4
 certifi==2025.4.26
 ipykernel==6.29.5
+torchmetrics==1.7.1
+
+# experiment logging
+wandb
+nbformat
+
 
 # same as colab:
 
+tqdm==4.67.1
 # matplotlib==3.10.0
 # scikit-learn==1.6.1
 # scipy==1.15.2
 # seaborn==0.13.2
-# tqdm==4.67.1
+
 
 
 
