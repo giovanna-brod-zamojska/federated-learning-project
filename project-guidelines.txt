@@ -84,3 +84,94 @@ compare with the previous results:
 - Pick the lowest-magnitude weights (instead of the least-sensitive)
 - Pick the highest-magnitude weights (instead of the least-sensitive)
 - Pick random weights (instead of the least-sensitive)
+
+
+-------------------------------------------- PLAN -------------------------------------------------
+
+MODELS OVERVIEW
+
+1. CENTRALIZED BASELINE MODEL
+
+- all dataset, split 60-20-20
+- SGDM optimizer (lr, momentum, weight decay: hyperparameters)
+- Cosine annealing scheduler
+
+Experiment for searching best hyperparameters
+
+2. FedAvg with I.I.D. sharding
+
+- K=100 (number of clients - FIXED)
+- C=0.1 (fraction of clients used per round - FIXED)
+- J=4 (number of local steps - FIXED)
+- Nc={100} (number of labels for each client - FIXED) iid = each client receives an equal number of labels
+- number of rounds -> "proper": up to you to define, based on convergence and time/compute budget
+  comment: if C = 10%  and K=100 then "number of rounds" at least 10 where at each round we pass 10 different clients with respect to prev round (?)
+
+3. FedAVg with NON I.I.D. sharding
+
+- K=100 (number of clients - FIXED)
+- C=0.1 (fraction of clients used per round - FIXED)
+- J={4,8,16} (number of local steps - HYPER)
+- Nc={1,5,10,50} (number of labels for each client - HYPER)
+- number of rounds -> When increasing the number of local steps, remember to scale accordingly the number of training rounds.
+
+
+4. Model editing using a Calibrated Mask and a SparseSGDM.
+
+    Objective: apply model editing to the previouse fine-tuned model
+
+    [
+        Before training model 4, you should study:
+
+        - how to calibrate a gradient mask in multiple rounds 
+        (https://github.com/iurada/talos-task-arithmetic/blob/ae102473de0e57ebf625eca22e10781c371149ec/vision/pruners.py#L203
+        https://github.com/iurada/talos-task-arithmetic/blob/main/vision/prune_finetune.py#L107)
+        
+        - how to implement SparseSGDM
+
+        Then, do it. 
+        Then, train model 4.
+    ]
+
+You should now experiment with: 
+-	Sparsity ratio (defined by the sensitivity threshold chosen in step 1.)
+-	Number of calibration rounds -> aka: finetune the model using different Gradient Masks (defined by running the code for choosing the Gradient Masks at different number of calibration rounds)
+
+--------------------------------
+
+QUESTIONS
+
+A. Number of "local steps" means number of "local epochs" each client model has to train for (?)
+
+
+B. Number of rounds: number of times all the clients models finish their local training and send back their parameter for performing model aggregation ( != model editing ) on the global server model,
+
+  ChatGPT:
+  Answer: It is the number of global communication rounds between clients and the server.
+
+    Each round includes:
+
+    Server sends global model to a subset of clients (C × K)
+
+    Each selected client (C=0.1 -> 10%) trains locally for J local epochs
+
+    Clients send updated models back
+
+    Server aggregates models using FedAvg
+
+    Each round = send model → local training → aggregate
+
+
+C. In model 4, which model should i finetune using different Sparsity raio and different calibration rounds? The baseline model? the iid and not iid? all of them? why? which is the purpose?
+
+    ChatGPT:
+    All: centralized, iid FedAvg, non-iid FedAvg. To compare editing effect across training types.
+
+D. Models 1. 2. and 3. should be fine-tuned using all layers of the ViT model ?
+
+E. Can we apply image augmentation (to avoid overfitting) ?
+
+
+---------------------------------- Thoughts & Ideas ---------------------------------------------
+
+...
