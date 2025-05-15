@@ -116,7 +116,9 @@ Experiment for searching best hyperparameters
 - number of rounds -> When increasing the number of local steps, remember to scale accordingly the number of training rounds.
 
 
-4. Model editing using a Calibrated Mask and a SparseSGDM
+4. Model editing using a Calibrated Mask and a SparseSGDM.
+
+    Objective: apply model editing to the previouse fine-tuned model
 
     [
         Before training model 4, you should study:
@@ -164,3 +166,12 @@ C. In model 4, which model should i finetune using different Sparsity raio and d
 
     ChatGPT:
     All: centralized, iid FedAvg, non-iid FedAvg. To compare editing effect across training types.
+
+D. Models 1. 2. and 3. should be fine-tuned using all layers of the ViT model ?
+
+E. Can we apply image augmentation (to avoid overfitting) ?
+
+
+---------------------------------- Thoughts & Ideas ---------------------------------------------
+
+...

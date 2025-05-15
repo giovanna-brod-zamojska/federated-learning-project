@@ -75,12 +75,8 @@ class Metrics:
         return self.get_metrics()
 
     def get_metrics(self) -> dict:
-        """
-        Get the current metrics.
+        """Get the current metrics."""
 
-        Returns:
-            dict: Dictionary containing the current metrics
-        """
         return {
             "precision_macro": self.precision_macro.compute(),
             "recall_macro": self.recall_macro.compute(),
