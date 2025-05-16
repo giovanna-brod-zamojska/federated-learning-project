@@ -169,7 +169,18 @@ C. In model 4, which model should i finetune using different Sparsity raio and d
 
 D. Models 1. 2. and 3. should be fine-tuned using all layers of the ViT model ?
 
-E. Can we apply image augmentation (to avoid overfitting) ?
+E. (Dataset) Can we apply image augmentation (to avoid overfitting) ?
+
+F. (Model editing) Should we modify in some way the forward method of the Vit model (example: in https://github.com/iurada/talos-task-arithmetic/blob/main/vision
+  there are some modifications, look up for "Image Encoder" before attaching the classification head) before using it (apart of course of modifying 
+  it for outputing the correct number of labels) ??
+  F.1 is the implementation in BaseTrainer.change_classifier_layer correct?
+
+G. (Model editing) Can we use the pruner implement in https://github.com/iurada/talos-task-arithmetic/ (literally copying the code)? 
+  if yes, is there a suggested "scope" to be used when applying gradient masking to model parameters?
+
+
+
 
 
 ---------------------------------- Thoughts & Ideas ---------------------------------------------
