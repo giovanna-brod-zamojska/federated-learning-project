@@ -4,11 +4,14 @@ import wandb
 import random
 import numpy as np
 from copy import deepcopy
+from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, Any, List, Optional, Tuple
 
 from src.classes.trainer import BaseTrainer
 from src.classes.cifar100_dataset import CIFAR100Dataset
+
+from datetime import date
 
 
 class ExperimentManager:
@@ -89,10 +92,14 @@ class ExperimentManager:
         best_metric = 0.0
         best_config = None
         metric_for_best_model = metric_for_best_config
+        today = date.today()
 
         for idx, params in enumerate(self.param_grid):
             config = deepcopy(self.base_config)
             config.update(params)
+
+            # summarize the config params into a str to have a detailed run description
+            notes = ", ".join(f"{k}={v}" for k, v in config.items())
 
             print(
                 f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {params}"
@@ -102,7 +109,8 @@ class ExperimentManager:
                 run = wandb.init(
                     project=self.project_name,
                     group=self.group_name,  # Group runs under this name
-                    name=f"run_{run_name}_{idx + 1}",  # Name of the run
+                    name=f"run_{today}_{run_name}_config{idx + 1}",  # Name of the run
+                    notes=notes,
                     config=config,
                     tags=run_tags,
                     dir="./wandb_logs",  # Directory to save logs
