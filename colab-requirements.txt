@@ -1,1 +1,4 @@
-loguru
+flwr[simulation]
+wandb
+nbformat
+torchmetrics

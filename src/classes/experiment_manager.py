@@ -7,7 +7,7 @@ from copy import deepcopy
 from torch.utils.data import DataLoader
 from typing import Dict, Any, List, Optional, Tuple
 
-from src.classes.centralized_baseline_trainer import BaseTrainer
+from src.classes.trainer import BaseTrainer
 from src.classes.cifar100_dataset import CIFAR100Dataset
 
 

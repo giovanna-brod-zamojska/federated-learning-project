@@ -4,6 +4,8 @@ numpy==1.26.4
 certifi==2025.4.26
 ipykernel==6.29.5
 torchmetrics==1.7.1
+flwr[simulation]==1.18.0
+
 
 # experiment logging
 wandb

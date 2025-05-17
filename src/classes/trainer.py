@@ -16,6 +16,7 @@ class BaseTrainer:
 
     def __init__(
         self,
+        num_classes: int,
         epochs: int,
         loss_fn: nn.Module,
         optimizer: nn.Module,
@@ -24,6 +25,8 @@ class BaseTrainer:
         checkpoint_dir: str = "./checkpoints",
         metric_for_best_model: str = "accuracy",
     ):
+
+        self.num_classes = num_classes
         self.use_wandb = use_wandb
         self.metric_for_best_model = metric_for_best_model
 
@@ -39,14 +42,24 @@ class BaseTrainer:
     # TODO: ???? Should we freeze all base layers and implement gradual unfreezing of layers?
     def freeze_base_layers(self, layers: Optional[int] = None) -> None:
 
+        if not self.model:
+            raise ValueError(
+                "Model not initialized. Please initialize the model first."
+            )
+
         # Freeze all base layers in the "features" section of the model (the feature extractor) by setting requires_grad=False
         for param in self.model.features.parameters():
             param.requires_grad = False
 
-    def change_classifier_layer(self, num_classes: int) -> None:
+    def change_classifier_layer(self, num_classes: int = None) -> None:
         """
         Change the classifier layer to match the dataset number of labels.
         """
+
+        if not self.model:
+            raise ValueError(
+                "Model not initialized. Please initialize the model first."
+            )
 
         # DINO models use 'head' as an nn.Identity initially
         if hasattr(self.model, "head") and isinstance(self.model.head, nn.Identity):
@@ -54,9 +67,9 @@ class BaseTrainer:
             hidden_dim = self.model.blocks[
                 0
             ].mlp.fc1.in_features  # or self.model.norm.normalized_shape[0]
-            self.model.head = nn.Linear(hidden_dim, num_classes)
+            self.model.head = nn.Linear(hidden_dim, self.num_classes)
             print(
-                f"Replaced model.head (Identity) with Linear({hidden_dim}, {num_classes})"
+                f"Replaced model.head (Identity) with Linear({hidden_dim}, {self.num_classes})"
             )
             print(self.model)
             self.model.to(self.device)
@@ -127,6 +140,10 @@ class BaseTrainer:
             val_loader (DataLoader): Validation data loader.
             resume (str, optional): Path to checkpoint to resume from.
         """
+        if not self.model:
+            raise ValueError(
+                "Model not initialized. Please initialize the model first."
+            )
 
         print("Training started")
 
@@ -156,8 +173,8 @@ class BaseTrainer:
         for epoch in range(start_epoch + 1, self.epochs + 1):
             s = time()
 
-            train_metrics = Metrics(self.device, num_classes=100)
-            val_metrics = Metrics(self.device, num_classes=100)
+            train_metrics = Metrics(self.device, num_classes=self.num_classes)
+            val_metrics = Metrics(self.device, num_classes=self.num_classes)
 
             train_loss, train_metrics = self._train_or_eval_loop(
                 train_loader, is_train=True, metrics=train_metrics
@@ -219,7 +236,12 @@ class BaseTrainer:
         """
         Evaluate the model on the test dataset.
         """
-        metrics = Metrics(self.device, num_classes=100)
+        if not self.model:
+            raise ValueError(
+                "Model not initialized. Please initialize the model first."
+            )
+
+        metrics = Metrics(self.device, num_classes=self.num_classes)
 
         test_loss, test_metrics = self._train_or_eval_loop(
             test_loader, is_train=False, metrics=metrics
@@ -246,16 +268,13 @@ class BaseTrainer:
     def save_model(self, path: str):
         """
         Save the model's state_dict to the specified file path.
-
-        Args:
-            path (str): File path to save the model.
         """
         os.makedirs(os.path.dirname(path), exist_ok=True)
         torch.save(self.model.state_dict(), path)
         print(f"Model saved to {path}")
 
 
-class CentralizedBaselineTrainer(BaseTrainer):
+class Trainer(BaseTrainer):
     """
     A trainer class for centralized training of vision transformer models,
     using a supervised classification setting.
@@ -312,10 +331,11 @@ class CentralizedBaselineTrainer(BaseTrainer):
             "scheduler": scheduler,
             "use_wandb": use_wandb,
             "metric_for_best_model": metric_for_best_model,
+            "num_classes": num_classes,
         }
 
         super().__init__(**base_trainer_args)
 
         print("Centralized Baseline Trainer initialized.")
 
-        self.change_classifier_layer(num_classes=num_classes)
+        self.change_classifier_layer()
