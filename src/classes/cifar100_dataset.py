@@ -337,7 +337,13 @@ class CIFAR100Dataset_v2:
         return train_sub, val_sub
 
     def get_dataloaders(
-        self, client_id: Optional[int], split_type: Optional[str], batch_size: int = 32
+        self,
+        client_id: Optional[int],
+        split_type: Optional[str],
+        batch_size: int = 32,
+        pin_memory=True,
+        worker_init_fn=None,
+        num_workers=4,
     ):
         """
         Return Train Val and Test DataLoaders for a client partition, if specified,
@@ -356,12 +362,27 @@ class CIFAR100Dataset_v2:
                 raise ValueError("Unknown split_type")
 
         train_dataloader = DataLoader(
-            dataset["train"], batch_size=batch_size, shuffle=True
+            dataset["train"],
+            batch_size=batch_size,
+            shuffle=True,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
+            worker_init_fn=worker_init_fn,
         )
         val_dataloader = DataLoader(
-            dataset["val"], batch_size=batch_size, shuffle=False
+            dataset["val"],
+            batch_size=batch_size,
+            shuffle=False,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
+            worker_init_fn=worker_init_fn,
         )
         test_dataloader = DataLoader(
-            self.dataset["test"], batch_size=batch_size, shuffle=False
+            self.dataset["test"],
+            batch_size=batch_size,
+            shuffle=False,
+            pin_memory=pin_memory,
+            num_workers=num_workers,
+            worker_init_fn=worker_init_fn,
         )
         return train_dataloader, val_dataloader, test_dataloader
