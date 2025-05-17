@@ -338,8 +338,8 @@ class CIFAR100Dataset_v2:
 
     def get_dataloaders(
         self,
-        client_id: Optional[int],
-        split_type: Optional[str],
+        client_id: Optional[int] = None,
+        split_type: Optional[str] = None,
         batch_size: int = 32,
         pin_memory=True,
         worker_init_fn=None,
