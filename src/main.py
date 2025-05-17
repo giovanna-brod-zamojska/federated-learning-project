@@ -8,7 +8,7 @@ sys.path.append(project_root)
 import torch
 import numpy as np
 from src.classes.cifar100_dataset import CIFAR100Dataset
-from src.classes.centralized_baseline_trainer import CentralizedBaselineTrainer
+from src.classes.trainer import Trainer as CentralizedBaselineTrainer
 
 
 def set_seed(seed):
