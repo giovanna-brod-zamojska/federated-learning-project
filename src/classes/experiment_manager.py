@@ -28,6 +28,7 @@ class ExperimentManager:
         project_name: str = "federated-learning-project-TEST",
         group_name: str = "centralized_baseline",
         do_test: bool = False,
+        checkpoint_dir: str = "./checkpoints",
     ):
         self.do_test = do_test
 
@@ -37,6 +38,7 @@ class ExperimentManager:
         self.use_wandb = use_wandb
         self.project_name = project_name
         self.group_name = group_name
+        self.checkpoint_dir = checkpoint_dir
 
     @staticmethod
     def worker_init_fn(worker_id):
@@ -107,6 +109,7 @@ class ExperimentManager:
                 num_classes=dataset.get_num_labels(),
                 use_wandb=self.use_wandb,
                 metric_for_best_model=metric_for_best_model,
+                checkpoint_dir=self.checkpoint_dir,
             )
 
             if resume:
@@ -135,6 +138,8 @@ class ExperimentManager:
             if metric and metric > best_metric:
                 best_metric = metric
                 best_config = config
+
+        results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
 
         print(
             f"🏆Best config: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric:.2f}%"
