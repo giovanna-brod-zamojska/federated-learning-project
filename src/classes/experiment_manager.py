@@ -65,6 +65,7 @@ class ExperimentManager:
             num_workers=config["num_workers"],
             pin_memory=True,
             worker_init_fn=self.worker_init_fn,
+            seed=config["seed"]
         )
 
         print("Data loaders created.\n")

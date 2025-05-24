@@ -344,12 +344,16 @@ class CIFAR100Dataset_v2:
         pin_memory=True,
         worker_init_fn=None,
         num_workers=4,
+        seed: int = 42,
     ):
         """
         Return Train Val and Test DataLoaders for a client partition, if specified,
         otherwise for the base partition.
         split_type: "iid" or "noniid"
         """
+        g = torch.Generator()
+        g.manual_seed(seed)
+
         dataset = self.base_partition
         if client_id:
             if split_type == "iid":
@@ -368,6 +372,7 @@ class CIFAR100Dataset_v2:
             pin_memory=pin_memory,
             num_workers=num_workers,
             worker_init_fn=worker_init_fn,
+            generator=g,
         )
         val_dataloader = DataLoader(
             dataset["val"],
@@ -376,6 +381,7 @@ class CIFAR100Dataset_v2:
             pin_memory=pin_memory,
             num_workers=num_workers,
             worker_init_fn=worker_init_fn,
+            generator=g,
         )
         test_dataloader = DataLoader(
             self.dataset["test"],
@@ -384,5 +390,6 @@ class CIFAR100Dataset_v2:
             pin_memory=pin_memory,
             num_workers=num_workers,
             worker_init_fn=worker_init_fn,
+            generator=g,
         )
         return train_dataloader, val_dataloader, test_dataloader
