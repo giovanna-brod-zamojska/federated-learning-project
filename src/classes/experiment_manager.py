@@ -48,8 +48,11 @@ class ExperimentManager:
         random.seed(seed)
 
         print(
-            f"Initial seed: {torch.initial_seed()}. Setting up seed={seed} for worker {worker_id}"
+            f"Initial seed: {torch.initial_seed()}. Setting up seed={seed} for worker {worker_id}",
+            flush=True,
         )
+        with open("worker_log.txt", "a") as f:
+            f.write(f"Worker {worker_id} seed: {seed}\n")
 
     def setup_dataset(
         self, dataset: CIFAR100Dataset, config
