@@ -69,6 +69,7 @@ class ExperimentManager:
         run_tags: List[str],
         resume: Optional[str] = None,
         metric_for_best_config: str = "accuracy",
+        resume_training_from_config: int = None,
     ) -> Tuple[Dict[str, Any], float]:
 
         results = []
@@ -77,7 +78,10 @@ class ExperimentManager:
         metric_for_best_model = metric_for_best_config
         today = date.today()
 
-        for idx, params in enumerate(self.param_grid):
+        start_idx = resume_training_from_config - 1 if resume_training_from_config is not None else 0
+
+        for idx in range(start_idx, len(self.param_grid)):
+            params = self.param_grid[idx]
             config = deepcopy(self.base_config)
             config.update(params)
 
