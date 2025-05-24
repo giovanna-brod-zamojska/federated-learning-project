@@ -4,11 +4,14 @@ import wandb
 import random
 import numpy as np
 from copy import deepcopy
+from datetime import datetime
 from torch.utils.data import DataLoader
 from typing import Dict, Any, List, Optional, Tuple
 
-from src.classes.centralized_baseline_trainer import BaseTrainer
-from src.classes.cifar100_dataset import CIFAR100Dataset
+from src.classes.trainer import BaseTrainer
+from src.classes.cifar100_dataset import CIFAR100Dataset_v2 as CIFAR100Dataset
+
+from datetime import date
 
 
 class ExperimentManager:
@@ -25,6 +28,7 @@ class ExperimentManager:
         project_name: str = "federated-learning-project-TEST",
         group_name: str = "centralized_baseline",
         do_test: bool = False,
+        checkpoint_dir: str = "./checkpoints",
     ):
         self.do_test = do_test
 
@@ -34,6 +38,7 @@ class ExperimentManager:
         self.use_wandb = use_wandb
         self.project_name = project_name
         self.group_name = group_name
+        self.checkpoint_dir = checkpoint_dir
 
     @staticmethod
     def worker_init_fn(worker_id):
@@ -45,32 +50,13 @@ class ExperimentManager:
         self, dataset: CIFAR100Dataset, config
     ) -> Tuple[CIFAR100Dataset, DataLoader, DataLoader, DataLoader]:
 
-        dataset_dict = dataset.get_split(split_type="classic")
+        train_loader, valid_loader, test_loader = dataset.get_dataloaders(
+            batch_size=config["batch_size"],
+            num_workers=config["num_workers"],
+            pin_memory=True,
+            worker_init_fn=self.worker_init_fn,
+        )
 
-        train_loader = DataLoader(
-            dataset_dict["train"],
-            batch_size=config["batch_size"],
-            shuffle=True,
-            num_workers=config["num_workers"],
-            pin_memory=True,
-            worker_init_fn=self.worker_init_fn,
-        )
-        valid_loader = DataLoader(
-            dataset_dict["val"],
-            batch_size=config["batch_size"],
-            shuffle=False,
-            num_workers=config["num_workers"],
-            pin_memory=True,
-            worker_init_fn=self.worker_init_fn,
-        )
-        test_loader = DataLoader(
-            dataset_dict["test"],
-            batch_size=config["batch_size"],
-            shuffle=False,
-            num_workers=config["num_workers"],
-            pin_memory=True,
-            worker_init_fn=self.worker_init_fn,
-        )
         print("Data loaders created.\n")
 
         return dataset, train_loader, valid_loader, test_loader
@@ -89,10 +75,14 @@ class ExperimentManager:
         best_metric = 0.0
         best_config = None
         metric_for_best_model = metric_for_best_config
+        today = date.today()
 
         for idx, params in enumerate(self.param_grid):
             config = deepcopy(self.base_config)
             config.update(params)
+
+            # summarize the config params into a str to have a detailed run description
+            notes = ", ".join(f"{k}={v}" for k, v in config.items())
 
             print(
                 f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {params}"
@@ -102,7 +92,8 @@ class ExperimentManager:
                 run = wandb.init(
                     project=self.project_name,
                     group=self.group_name,  # Group runs under this name
-                    name=f"run_{run_name}_{idx + 1}",  # Name of the run
+                    name=f"run_{today}_{run_name}_config{idx + 1}",  # Name of the run
+                    notes=notes,
                     config=config,
                     tags=run_tags,
                     dir="./wandb_logs",  # Directory to save logs
@@ -118,6 +109,7 @@ class ExperimentManager:
                 num_classes=dataset.get_num_labels(),
                 use_wandb=self.use_wandb,
                 metric_for_best_model=metric_for_best_model,
+                checkpoint_dir=self.checkpoint_dir,
             )
 
             if resume:
@@ -146,6 +138,8 @@ class ExperimentManager:
             if metric and metric > best_metric:
                 best_metric = metric
                 best_config = config
+
+        results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
 
         print(
             f"🏆Best config: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric:.2f}%"
