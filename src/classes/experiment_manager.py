@@ -52,9 +52,15 @@ class ExperimentManager:
     @staticmethod
     def worker_init_fn(worker_id):
 
-        seed = torch.initial_seed() % 2**32  # Each worker gets a different seed
+        initial_seed = torch.initial_seed()
+
+        seed = initial_seed % 2**32  
         np.random.seed(seed)
         random.seed(seed)
+
+        print(
+            f"Worker {worker_id}, initial_torch_seed={initial_seed}, set seed={seed}"
+        )
 
     def setup_dataset(
         self, dataset: CIFAR100Dataset, config
@@ -65,7 +71,7 @@ class ExperimentManager:
             num_workers=config["num_workers"],
             pin_memory=True,
             worker_init_fn=self.worker_init_fn,
-            seed=config["seed"]
+            seed=config["seed"],
         )
 
         print("Data loaders created.\n")
@@ -75,7 +81,7 @@ class ExperimentManager:
     def run(
         self,
         trainer_class: BaseTrainer,
-        dataset: CIFAR100Dataset,
+        dataset_class: CIFAR100Dataset,
         run_name: str,
         run_tags: List[str],
         resume: Optional[str] = None,
@@ -102,6 +108,8 @@ class ExperimentManager:
             config.update(params)
 
             self.set_seed(config["seed"])
+
+            dataset = dataset_class(seed=config["seed"])
 
             # summarize the config params into a str to have a detailed run description
             notes = ", ".join(f"{k}={v}" for k, v in config.items())
