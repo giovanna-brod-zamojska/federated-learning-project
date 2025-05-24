@@ -78,7 +78,11 @@ class ExperimentManager:
         metric_for_best_model = metric_for_best_config
         today = date.today()
 
-        start_idx = resume_training_from_config - 1 if resume_training_from_config is not None else 0
+        start_idx = (
+            resume_training_from_config - 1
+            if resume_training_from_config is not None
+            else 0
+        )
 
         for idx in range(start_idx, len(self.param_grid)):
             params = self.param_grid[idx]
@@ -145,12 +149,12 @@ class ExperimentManager:
                 best_config = config
 
             print(
-                f"🏆Best config up to now: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric:.2f}%"
+                f"🏆Best config up to now: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric*100:.2f}%"
             )
 
         results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
 
         print(
-            f"🏆Best config: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric:.2f}%"
+            f"🏆Best config: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric*100:.2f}%"
         )
         return best_config, best_metric, results
