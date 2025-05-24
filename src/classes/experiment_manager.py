@@ -41,18 +41,20 @@ class ExperimentManager:
         self.checkpoint_dir = checkpoint_dir
 
     @staticmethod
+    def set_seed(seed):
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        random.seed(seed)
+        np.random.seed(seed)
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+    @staticmethod
     def worker_init_fn(worker_id):
 
         seed = torch.initial_seed() % 2**32  # Each worker gets a different seed
         np.random.seed(seed)
         random.seed(seed)
-
-        print(
-            f"Initial seed: {torch.initial_seed()}. Setting up seed={seed} for worker {worker_id}",
-            flush=True,
-        )
-        with open("worker_log.txt", "a") as f:
-            f.write(f"Worker {worker_id} seed: {seed}\n")
 
     def setup_dataset(
         self, dataset: CIFAR100Dataset, config
@@ -93,9 +95,12 @@ class ExperimentManager:
         )
 
         for idx in range(start_idx, len(self.param_grid)):
+
             params = self.param_grid[idx]
             config = deepcopy(self.base_config)
             config.update(params)
+
+            self.set_seed(config["seed"])
 
             # summarize the config params into a str to have a detailed run description
             notes = ", ".join(f"{k}={v}" for k, v in config.items())
