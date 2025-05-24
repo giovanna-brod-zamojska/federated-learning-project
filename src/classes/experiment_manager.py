@@ -42,9 +42,14 @@ class ExperimentManager:
 
     @staticmethod
     def worker_init_fn(worker_id):
+
         seed = torch.initial_seed() % 2**32  # Each worker gets a different seed
         np.random.seed(seed)
         random.seed(seed)
+
+        print(
+            f"Initial seed: {torch.initial_seed()}. Setting up seed={seed} for worker {worker_id}"
+        )
 
     def setup_dataset(
         self, dataset: CIFAR100Dataset, config
