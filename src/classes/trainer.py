@@ -223,6 +223,7 @@ class BaseTrainer:
                         "train_loss": train_loss,
                         "val_loss": val_loss,
                         "elapsed_time": time() - s,
+                        "epoch": epoch,
                     }
                 )
                 wandb.log(logs_for_wandb)
