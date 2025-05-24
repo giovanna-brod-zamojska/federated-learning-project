@@ -138,10 +138,15 @@ class ExperimentManager:
 
             result = {"config": config, "val_metric": metric}
             results.append(result)
+            results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
 
             if metric and metric > best_metric:
                 best_metric = metric
                 best_config = config
+
+            print(
+                f"🏆Best config up to now: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric:.2f}%"
+            )
 
         results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
 

@@ -229,7 +229,7 @@ class BaseTrainer:
                 wandb.log(logs_for_wandb)
 
         print(
-            f"Best Validation Metric - {self.metric_for_best_model}: {best_metric:.2f}%"
+            f"Best Validation Metric - {self.metric_for_best_model}: {best_metric*100:.2f}%"
         )
         return best_metric
 
