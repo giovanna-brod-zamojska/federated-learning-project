@@ -308,7 +308,7 @@ class Trainer(BaseTrainer):
 
         self.unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
         if self.unfreeze_at_epoch:
-            self._set_requires_grad(train_head_only=True)
+            self._train_head_only()
 
         optimizer = torch.optim.SGD(
             filter(lambda p: p.requires_grad, self.model.parameters()),
