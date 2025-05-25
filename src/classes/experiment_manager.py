@@ -65,7 +65,7 @@ class ExperimentManager:
         self, dataset: CIFAR100Dataset, config, use_worker_init
     ) -> Tuple[CIFAR100Dataset, DataLoader, DataLoader, DataLoader]:
 
-        worker_init_fn
+        worker_init_fn = None
         if use_worker_init:
             worker_init_fn = self.worker_init_fn
 
