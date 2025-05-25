@@ -1,7 +1,6 @@
 import os
 import torch
 import random
-import numpy as np
 from typing import Dict, Optional, List
 from collections import defaultdict
 from torchvision import datasets, transforms
@@ -169,12 +168,13 @@ class CIFAR100Dataset_v2:
     ):
 
         self.data_dir = data_dir
+        self.resized_data_dir = "./data_resized"
         self.val_split = val_split
         self.seed = seed
 
         self.train_transform = transforms.Compose(
             [
-                transforms.RandomResizedCrop(224), 
+                transforms.RandomResizedCrop(224),
                 transforms.RandomHorizontalFlip(),
                 transforms.ToTensor(),
                 transforms.Normalize(
@@ -185,8 +185,7 @@ class CIFAR100Dataset_v2:
 
         self.test_transform = transforms.Compose(
             [
-                transforms.Resize(256, interpolation=3), 
-                transforms.CenterCrop(224),
+                transforms.Resize(224),
                 transforms.ToTensor(),
                 transforms.Normalize(
                     mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
@@ -218,7 +217,7 @@ class CIFAR100Dataset_v2:
             print(f"Dataset found at {self.data_dir}. Loading...")
             download = False
         else:
-            print(f"Dataset not found at {self.data_dir}. Downloading...")
+            print(f"Dataset not found at {self.data_dir}.")
 
         return {
             "train": datasets.CIFAR100(

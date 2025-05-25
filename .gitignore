@@ -1,5 +1,6 @@
 #custom
 **/data
+**/data_resized
 **/checkpoints
 **/wandb_logs
 

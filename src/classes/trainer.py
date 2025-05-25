@@ -81,6 +81,7 @@ class BaseTrainer:
             )
             print(self.model)
             self.model.to(self.device)
+
         else:
             raise ValueError("Unknown classifier layer name in model.")
 
@@ -103,7 +104,7 @@ class BaseTrainer:
 
                 # Forward pass and loss calculation
                 features = self.model(X)
-                logits = self.model.head(features)  # TODO: check if this is correct
+                logits = self.model.head(features)
                 loss = self.loss_fn(logits, y)
 
                 # Backpropagation

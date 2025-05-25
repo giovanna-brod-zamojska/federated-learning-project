@@ -3,6 +3,7 @@ import torch
 import wandb
 import random
 import numpy as np
+from tqdm import tqdm
 from copy import deepcopy
 from datetime import datetime
 from torch.utils.data import DataLoader
@@ -61,14 +62,18 @@ class ExperimentManager:
         print(f"Worker {worker_id}, initial_torch_seed={initial_seed}, set seed={seed}")
 
     def setup_dataset(
-        self, dataset: CIFAR100Dataset, config
+        self, dataset: CIFAR100Dataset, config, use_worker_init
     ) -> Tuple[CIFAR100Dataset, DataLoader, DataLoader, DataLoader]:
+
+        worker_init_fn
+        if use_worker_init:
+            worker_init_fn = self.worker_init_fn
 
         train_loader, valid_loader, test_loader = dataset.get_dataloaders(
             batch_size=config["batch_size"],
             num_workers=config["num_workers"],
             pin_memory=True,
-            worker_init_fn=self.worker_init_fn,
+            worker_init_fn=worker_init_fn,
             seed=config["seed"],
         )
 
@@ -85,6 +90,7 @@ class ExperimentManager:
         resume: Optional[str] = None,
         metric_for_best_config: str = "accuracy",
         resume_training_from_config: int = None,
+        use_worker_init: bool = False,
     ) -> Tuple[Dict[str, Any], float]:
 
         results = []
@@ -129,7 +135,7 @@ class ExperimentManager:
                 )
 
             _, train_loader, val_loader, test_loader = self.setup_dataset(
-                dataset, config
+                dataset, config, use_worker_init
             )
 
             trainer = trainer_class(
