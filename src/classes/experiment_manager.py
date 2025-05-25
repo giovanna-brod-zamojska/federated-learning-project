@@ -54,13 +54,11 @@ class ExperimentManager:
 
         initial_seed = torch.initial_seed()
 
-        seed = initial_seed % 2**32  
+        seed = initial_seed % 2**32
         np.random.seed(seed)
         random.seed(seed)
 
-        print(
-            f"Worker {worker_id}, initial_torch_seed={initial_seed}, set seed={seed}"
-        )
+        print(f"Worker {worker_id}, initial_torch_seed={initial_seed}, set seed={seed}")
 
     def setup_dataset(
         self, dataset: CIFAR100Dataset, config

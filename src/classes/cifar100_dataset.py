@@ -174,14 +174,23 @@ class CIFAR100Dataset_v2:
 
         self.train_transform = transforms.Compose(
             [
+                transforms.RandomResizedCrop(224), 
                 transforms.RandomHorizontalFlip(),
-                transforms.RandomCrop(32, padding=4),
                 transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
+
         self.test_transform = transforms.Compose(
             [
+                transforms.Resize(256, interpolation=3), 
+                transforms.CenterCrop(224),
                 transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
