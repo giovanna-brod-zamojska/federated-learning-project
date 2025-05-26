@@ -10,7 +10,7 @@ from torch.utils.data import DataLoader
 from typing import Dict, Any, List, Optional, Tuple
 
 from src.classes.trainer import BaseTrainer
-from src.classes.cifar100_dataset import CIFAR100Dataset_v2 as CIFAR100Dataset
+from src.classes.cifar100_dataset import CIFAR100Dataset
 
 from datetime import date
 
