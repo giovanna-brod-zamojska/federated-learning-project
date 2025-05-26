@@ -49,23 +49,36 @@ class BaseTrainer:
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-    def _unfreeze_and_add_param_group(self):
-        # Unfreeze the previously frozen model's parameters
-        for name, p in self.model.named_parameters():
-            if "head" not in name and "heads" not in name:
-                p.requires_grad = True
-        print("🔓 Encoder parameters now require grad.")
+        print("🔒 Encoder parameters frozen, only head parameters are trainable.")
 
-        # Add newly trainable parameters to the optimizer
+    def _unfreeze_and_add_param_group(self):
+        # 1. Unfreeze encoder parameters
+        unfrozen = []
+        for name, param in self.model.named_parameters():
+            if "head" not in name and "heads" not in name:
+                param.requires_grad = True
+                unfrozen.append(name)
+
+        print(f"🔓 Unfroze {len(unfrozen)} encoder parameters.")
+
+        # 2. Collect already-optimized parameter IDs
+        existing_param_ids = {
+            id(p) for group in self.optimizer.param_groups for p in group["params"]
+        }
+
+        # 3. Find new parameters not in the optimizer
         new_params = [
             p
             for p in self.model.parameters()
-            if p.requires_grad
-            and all(p not in g["params"] for g in self.optimizer.param_groups)
+            if p.requires_grad and id(p) not in existing_param_ids
         ]
+
+        # 4. Add them to the optimizer
         if new_params:
             self.optimizer.add_param_group({"params": new_params})
-            print(f"➕ Added {len(new_params)} parameters to optimizer.")
+            print(f"➕ Added {len(new_params)} new parameters to the optimizer.")
+        else:
+            print("ℹ️ No new parameters were added. All are already in the optimizer.")
 
     def change_classifier_layer(self, num_classes: int = None) -> None:
         """
@@ -183,11 +196,12 @@ class BaseTrainer:
             print(f"Using Learning Rate = {self.current_lr}")
 
             # Unfreeze after unfreeze_at_epoch
-            if self.unfreeze_at_epoch and epoch == self.unfreeze_at_epoch + 1:
-                print(
-                    f"Unfreezing model parameters at epoch {self.unfreeze_at_epoch + 1}."
-                )
-                self._unfreeze_and_add_param_group()
+            if self.unfreeze_at_epoch is not None:
+                if epoch == self.unfreeze_at_epoch:
+                    print(
+                        f"Unfreezing model parameters at epoch {self.unfreeze_at_epoch}."
+                    )
+                    self._unfreeze_and_add_param_group()
 
             train_metrics = Metrics(self.device, num_classes=self.num_classes)
             val_metrics = Metrics(self.device, num_classes=self.num_classes)
@@ -344,6 +358,7 @@ class Trainer(BaseTrainer):
             "metric_for_best_model": metric_for_best_model,
             "num_classes": num_classes,
             "checkpoint_dir": checkpoint_dir,
+            "unfreeze_at_epoch": self.unfreeze_at_epoch,
         }
 
         super().__init__(**base_trainer_args)
