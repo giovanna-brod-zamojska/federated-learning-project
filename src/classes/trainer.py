@@ -184,6 +184,9 @@ class BaseTrainer:
 
             # Unfreeze after unfreeze_at_epoch
             if self.unfreeze_at_epoch and epoch == self.unfreeze_at_epoch + 1:
+                print(
+                    f"Unfreezing model parameters at epoch {self.unfreeze_at_epoch + 1}."
+                )
                 self._unfreeze_and_add_param_group()
 
             train_metrics = Metrics(self.device, num_classes=self.num_classes)
@@ -309,6 +312,9 @@ class Trainer(BaseTrainer):
 
         self.unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
         if self.unfreeze_at_epoch:
+            print(
+                f"Setting: Unfreezing model parameters at epoch {self.unfreeze_at_epoch}."
+            )
             self._train_head_only()
 
         optimizer = torch.optim.SGD(
