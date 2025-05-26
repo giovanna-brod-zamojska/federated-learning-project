@@ -342,4 +342,4 @@ class Trainer(BaseTrainer):
 
         super().__init__(**base_trainer_args)
 
-        print("Centralized Baseline Trainer initialized.")
+        print("Trainer initialized.")
