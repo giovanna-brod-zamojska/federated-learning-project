@@ -3,16 +3,12 @@ import torch
 import wandb
 import random
 import numpy as np
-from tqdm import tqdm
-from copy import deepcopy
-from datetime import datetime
+from datetime import date
 from torch.utils.data import DataLoader
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Dict, Any, List, Tuple
 
 from src.classes.trainer import BaseTrainer
-from src.classes.cifar100_dataset import CIFAR100Dataset
-
-from datetime import date
+from src.classes.dataset import CIFAR100Dataset
 
 
 class ExperimentManager:
@@ -23,19 +19,13 @@ class ExperimentManager:
 
     def __init__(
         self,
-        base_config: Dict[str, Any],
         param_grid: List[Dict[str, Any]],
         use_wandb: bool = False,
         project_name: str = "federated-learning-project-TEST",
         group_name: str = "centralized_baseline",
-        do_test: bool = False,
         checkpoint_dir: str = "./checkpoints",
     ):
-        self.do_test = do_test
-
-        self.base_config = base_config
         self.param_grid = param_grid
-
         self.use_wandb = use_wandb
         self.project_name = project_name
         self.group_name = group_name
@@ -50,30 +40,14 @@ class ExperimentManager:
         torch.backends.cudnn.deterministic = True
         torch.backends.cudnn.benchmark = False
 
-    @staticmethod
-    def worker_init_fn(worker_id):
-
-        initial_seed = torch.initial_seed()
-
-        seed = initial_seed % 2**32
-        np.random.seed(seed)
-        random.seed(seed)
-
-        print(f"Worker {worker_id}, initial_torch_seed={initial_seed}, set seed={seed}")
-
     def setup_dataset(
-        self, dataset: CIFAR100Dataset, config, use_worker_init
+        self, dataset: CIFAR100Dataset, config
     ) -> Tuple[CIFAR100Dataset, DataLoader, DataLoader, DataLoader]:
-
-        worker_init_fn = None
-        if use_worker_init:
-            worker_init_fn = self.worker_init_fn
 
         train_loader, valid_loader, test_loader = dataset.get_dataloaders(
             batch_size=config["batch_size"],
             num_workers=config["num_workers"],
             pin_memory=True,
-            worker_init_fn=worker_init_fn,
             seed=config["seed"],
         )
 
@@ -87,10 +61,8 @@ class ExperimentManager:
         dataset_class: CIFAR100Dataset,
         run_name: str,
         run_tags: List[str],
-        resume: Optional[str] = None,
         metric_for_best_config: str = "accuracy",
         resume_training_from_config: int = None,
-        use_worker_init: bool = False,
     ) -> Tuple[Dict[str, Any], float]:
 
         results = []
@@ -107,23 +79,20 @@ class ExperimentManager:
 
         for idx in range(start_idx, len(self.param_grid)):
 
-            params = self.param_grid[idx]
-            config = deepcopy(self.base_config)
-            config.update(params)
-
+            config = self.param_grid[idx]
+            
             self.set_seed(config["seed"])
-
             dataset = dataset_class(seed=config["seed"])
 
             # summarize the config params into a str to have a detailed run description
             notes = ", ".join(f"{k}={v}" for k, v in config.items())
 
             print(
-                f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {params}"
+                f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {config}"
             )
 
             if self.use_wandb:
-                run = wandb.init(
+                wandb.init(
                     project=self.project_name,
                     group=self.group_name,  # Group runs under this name
                     name=f"run_{today}_{run_name}_config{idx + 1}",  # Name of the run
@@ -134,8 +103,8 @@ class ExperimentManager:
                     reinit=True,  # Reinitialize WandB for each run
                 )
 
-            _, train_loader, val_loader, test_loader = self.setup_dataset(
-                dataset, config, use_worker_init
+            _, train_loader, val_loader, _ = self.setup_dataset(
+                dataset, config
             )
 
             trainer = trainer_class(
@@ -146,22 +115,10 @@ class ExperimentManager:
                 checkpoint_dir=self.checkpoint_dir,
             )
 
-            if resume:
-                metric = trainer.train(
-                    train_loader,
-                    val_loader,
-                    resume=resume,
-                )
-            else:
-                metric = trainer.train(
-                    train_loader,
-                    val_loader,
-                )
-
-            if self.do_test:
-                test_metrics = trainer.test(test_loader)
-                if self.use_wandb:
-                    wandb.log({f"test_{k}": v for k, v in test_metrics.items()})
+            metric = trainer.train(
+                train_loader,
+                val_loader,
+            )
 
             if self.use_wandb:
                 wandb.finish()

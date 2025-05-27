@@ -291,25 +291,12 @@ class BaseTrainer:
             torch.save(state, best_filename)
             print(f"(Best) Checkpoint saved to {best_filename}")
 
-    def save_model(self, path: str):
-        """
-        Save the model's state_dict to the specified file path.
-        """
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        torch.save(self.model.state_dict(), path)
-        print(f"Model saved to {path}")
-
 
 class Trainer(BaseTrainer):
-    """
-    A trainer class for centralized training of vision transformer models,
-    using a supervised classification setting.
-    """
 
     def __init__(
         self,
         num_classes: int,
-        loss_fn: Optional[nn.Module] = None,
         scheduler_type: str = "CosineAnnealingLR",
         epochs: int = 1,
         use_wandb: bool = False,
@@ -324,12 +311,8 @@ class Trainer(BaseTrainer):
 
         self.change_classifier_layer(num_classes)
 
-        self.unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
-        if self.unfreeze_at_epoch:
-            print(
-                f"Setting: Unfreezing model parameters at epoch {self.unfreeze_at_epoch}."
-            )
-            self._train_head_only()
+        unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
+        self._train_head_only()
 
         optimizer = torch.optim.SGD(
             filter(lambda p: p.requires_grad, self.model.parameters()),
@@ -347,7 +330,7 @@ class Trainer(BaseTrainer):
                 f"Missing configuration for scheduler type: {scheduler_type}."
             )
 
-        loss_fn = loss_fn if loss_fn else nn.CrossEntropyLoss()
+        loss_fn = nn.CrossEntropyLoss()
 
         base_trainer_args = {
             "epochs": epochs,
@@ -358,7 +341,7 @@ class Trainer(BaseTrainer):
             "metric_for_best_model": metric_for_best_model,
             "num_classes": num_classes,
             "checkpoint_dir": checkpoint_dir,
-            "unfreeze_at_epoch": self.unfreeze_at_epoch,
+            "unfreeze_at_epoch": unfreeze_at_epoch,
         }
 
         super().__init__(**base_trainer_args)

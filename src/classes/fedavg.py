@@ -8,7 +8,7 @@ from flwr.server import ServerConfig, ServerAppComponents
 from flwr.common import ndarrays_to_parameters, Context
 
 from src.classes.trainer import Trainer
-from src.classes.cifar100_dataset import CIFAR100Dataset_v2
+from src.classes.dataset import CIFAR100Dataset
 
 
 # 1) Define Flower client
@@ -68,7 +68,7 @@ class FLClient(NumPyClient):
 
 # 2) Helper to create clients
 def client_fn(
-    context: Context, dataset: CIFAR100Dataset_v2, split_type="iid", **trainer_params
+    context: Context, dataset: CIFAR100Dataset, split_type="iid", **trainer_params
 ):
 
     # Note: each client gets a different trainloader/valloader, so each client

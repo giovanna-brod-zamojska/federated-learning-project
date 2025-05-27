@@ -1,8 +1,8 @@
 import os
 import torch
 import random
-from typing import Dict, Optional, List
 from collections import defaultdict
+from typing import Dict, Optional, List
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset, Subset, random_split, DataLoader
 
@@ -111,8 +111,17 @@ class CIFAR100Dataset:
         print(f"Train size: {len(self.train_data)}, Test size: {len(self.test_data)}")
         print("Train label distribution:", self.get_data_statistics(self.train_data))
 
-    def get_num_labels(self) -> int:
-        return self.class_count
+    def get_num_labels(self, split: str = None, client_id: int = None) -> int:
+
+        if client_id is not None:
+            if split == "iid":
+                return len(self.iid_partitions[client_id]["train"].classes)
+            elif split == "noniid":
+                return len(self.noniid_partitions[client_id]["train"].classes)
+            else:
+                raise ValueError("Unknown split type")
+            
+        return len(self.train_data.classes) 
 
     def create_iid_splits(self, num_clients: int) -> List[Dict[str, Dataset]]:
 
@@ -217,15 +226,15 @@ class CIFAR100Dataset:
         split_type: Optional[str] = None,
         batch_size: int = 32,
         pin_memory=True,
-        worker_init_fn=None,
         num_workers=4,
-        seed: int = 42,
+        seed=None,
     ):
         """
         Return Train Val and Test DataLoaders for a client partition, if specified,
         otherwise for the base partition.
         split_type: "iid" or "noniid"
         """
+        seed = seed if seed else self.seed
         g = torch.Generator()
         g.manual_seed(seed)
 
@@ -246,7 +255,6 @@ class CIFAR100Dataset:
             shuffle=True,
             pin_memory=pin_memory,
             num_workers=num_workers,
-            worker_init_fn=worker_init_fn,
             generator=g,
         )
         val_dataloader = DataLoader(
@@ -255,7 +263,6 @@ class CIFAR100Dataset:
             shuffle=False,
             pin_memory=pin_memory,
             num_workers=num_workers,
-            worker_init_fn=worker_init_fn,
             generator=g,
         )
         test_dataloader = DataLoader(
@@ -264,7 +271,6 @@ class CIFAR100Dataset:
             shuffle=False,
             pin_memory=pin_memory,
             num_workers=num_workers,
-            worker_init_fn=worker_init_fn,
             generator=g,
         )
         return train_dataloader, val_dataloader, test_dataloader
