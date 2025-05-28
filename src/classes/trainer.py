@@ -23,6 +23,7 @@ class BaseTrainer:
         use_wandb: bool = False,
         scheduler: Optional[nn.Module] = None,
         checkpoint_dir: str = "./checkpoints",
+        checkpoint_name: str = None,
         metric_for_best_model: str = "accuracy",
         unfreeze_at_epoch: int = None,
     ):
@@ -38,6 +39,7 @@ class BaseTrainer:
         self.scheduler = scheduler if scheduler else None
 
         self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_name = checkpoint_name
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         print(f"Checkpoint directory: {self.checkpoint_dir}")
 
@@ -49,23 +51,36 @@ class BaseTrainer:
         for param in self.model.head.parameters():
             param.requires_grad = True
 
-    def _unfreeze_and_add_param_group(self):
-        # Unfreeze the previously frozen model's parameters
-        for name, p in self.model.named_parameters():
-            if "head" not in name and "heads" not in name:
-                p.requires_grad = True
-        print("🔓 Encoder parameters now require grad.")
+        print("🔒 Encoder parameters frozen, only head parameters are trainable.")
 
-        # Add newly trainable parameters to the optimizer
+    def _unfreeze_and_add_param_group(self):
+        # 1. Unfreeze encoder parameters
+        unfrozen = []
+        for name, param in self.model.named_parameters():
+            if "head" not in name and "heads" not in name:
+                param.requires_grad = True
+                unfrozen.append(name)
+
+        print(f"🔓 Unfroze {len(unfrozen)} encoder parameters.")
+
+        # 2. Collect already-optimized parameter IDs
+        existing_param_ids = {
+            id(p) for group in self.optimizer.param_groups for p in group["params"]
+        }
+
+        # 3. Find new parameters not in the optimizer
         new_params = [
             p
             for p in self.model.parameters()
-            if p.requires_grad
-            and all(p not in g["params"] for g in self.optimizer.param_groups)
+            if p.requires_grad and id(p) not in existing_param_ids
         ]
+
+        # 4. Add them to the optimizer
         if new_params:
             self.optimizer.add_param_group({"params": new_params})
-            print(f"➕ Added {len(new_params)} parameters to optimizer.")
+            print(f"➕ Added {len(new_params)} new parameters to the optimizer.")
+        else:
+            print("ℹ️ No new parameters were added. All are already in the optimizer.")
 
     def change_classifier_layer(self, num_classes: int = None) -> None:
         """
@@ -183,11 +198,12 @@ class BaseTrainer:
             print(f"Using Learning Rate = {self.current_lr}")
 
             # Unfreeze after unfreeze_at_epoch
-            if self.unfreeze_at_epoch and epoch == self.unfreeze_at_epoch + 1:
-                print(
-                    f"Unfreezing model parameters at epoch {self.unfreeze_at_epoch + 1}."
-                )
-                self._unfreeze_and_add_param_group()
+            if self.unfreeze_at_epoch is not None:
+                if epoch == self.unfreeze_at_epoch:
+                    print(
+                        f"Unfreezing model parameters at epoch {self.unfreeze_at_epoch}."
+                    )
+                    self._unfreeze_and_add_param_group()
 
             train_metrics = Metrics(self.device, num_classes=self.num_classes)
             val_metrics = Metrics(self.device, num_classes=self.num_classes)
@@ -228,6 +244,7 @@ class BaseTrainer:
                 },
                 is_best,
                 self.checkpoint_dir,
+                self.checkpoint_name,
             )
 
             if self.use_wandb:
@@ -266,41 +283,38 @@ class BaseTrainer:
         return test_metrics
 
     @staticmethod
-    def save_checkpoint(state, is_best, checkpoint_dir):
+    def save_checkpoint(state, is_best, checkpoint_dir, checkpoint_name: str = None):
         """Save checkpoint to disk"""
+        last_checkpoint = (
+            "model_last.pth"
+            if not checkpoint_name
+            else f"model_last_{checkpoint_name}.pth"
+        )
+        best_checkpoint = (
+            "model_best.pth"
+            if not checkpoint_name
+            else f"model_best_{checkpoint_name}.pth"
+        )
 
-        filename = os.path.join(checkpoint_dir, "checkpoint.pth")
+        filename = os.path.join(checkpoint_dir, last_checkpoint)
         torch.save(state, filename)
         print(f"Checkpoint saved to {filename}")
         if is_best:
-            best_filename = os.path.join(checkpoint_dir, "model_best.pth")
+            best_filename = os.path.join(checkpoint_dir, best_checkpoint)
             torch.save(state, best_filename)
             print(f"(Best) Checkpoint saved to {best_filename}")
 
-    def save_model(self, path: str):
-        """
-        Save the model's state_dict to the specified file path.
-        """
-        os.makedirs(os.path.dirname(path), exist_ok=True)
-        torch.save(self.model.state_dict(), path)
-        print(f"Model saved to {path}")
-
 
 class Trainer(BaseTrainer):
-    """
-    A trainer class for centralized training of vision transformer models,
-    using a supervised classification setting.
-    """
 
     def __init__(
         self,
         num_classes: int,
-        loss_fn: Optional[nn.Module] = None,
         scheduler_type: str = "CosineAnnealingLR",
         epochs: int = 1,
         use_wandb: bool = False,
         metric_for_best_model: str = "accuracy",
-        checkpoint_dir: str = "/checkpoints",
+        checkpoint_dir: str = "./checkpoints",
         **kwargs,
     ):
         self.model = torch.hub.load("facebookresearch/dino:main", "dino_vits16")
@@ -310,12 +324,8 @@ class Trainer(BaseTrainer):
 
         self.change_classifier_layer(num_classes)
 
-        self.unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
-        if self.unfreeze_at_epoch:
-            print(
-                f"Setting: Unfreezing model parameters at epoch {self.unfreeze_at_epoch}."
-            )
-            self._train_head_only()
+        unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
+        self._train_head_only()
 
         optimizer = torch.optim.SGD(
             filter(lambda p: p.requires_grad, self.model.parameters()),
@@ -333,7 +343,7 @@ class Trainer(BaseTrainer):
                 f"Missing configuration for scheduler type: {scheduler_type}."
             )
 
-        loss_fn = loss_fn if loss_fn else nn.CrossEntropyLoss()
+        loss_fn = nn.CrossEntropyLoss()
 
         base_trainer_args = {
             "epochs": epochs,
@@ -344,6 +354,7 @@ class Trainer(BaseTrainer):
             "metric_for_best_model": metric_for_best_model,
             "num_classes": num_classes,
             "checkpoint_dir": checkpoint_dir,
+            "unfreeze_at_epoch": unfreeze_at_epoch,
         }
 
         super().__init__(**base_trainer_args)

@@ -1,0 +1,14 @@
+[
+    {
+        "config": {
+            "batch_size": 64,
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7034000158309937
+    }
+]

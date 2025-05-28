@@ -7,7 +7,7 @@ sys.path.append(project_root)
 
 import torch
 import numpy as np
-from src.classes.cifar100_dataset import CIFAR100Dataset
+from src.classes.dataset import CIFAR100Dataset
 from src.classes.trainer import Trainer as CentralizedBaselineTrainer
 
 

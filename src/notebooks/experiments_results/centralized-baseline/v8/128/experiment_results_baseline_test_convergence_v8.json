@@ -1,0 +1,290 @@
+[
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7357000112533569
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7351999878883362
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.001,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7351999878883362
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0001,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7350000143051147
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.001,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.732200026512146
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7318999767303467
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7318999767303467
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0001,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7317000031471252
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7304999828338623
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0.0001,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.730400025844574
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7303000092506409
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0.001,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7300999760627747
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0.0001,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7121000289916992
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7120000123977661
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0.001,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7120000123977661
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.005,
+            "weight_decay": 0.0005,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7117999792098999
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6664999723434448
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0.001,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6664999723434448
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6664000153541565
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0.0001,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6662999987602234
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0.001,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6089000105857849
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6086999773979187
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6085000038146973
+    },
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.001,
+            "weight_decay": 0.0001,
+            "momentum": 0.8,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6085000038146973
+    }
+]

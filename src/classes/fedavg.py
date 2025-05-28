@@ -8,7 +8,7 @@ from flwr.server import ServerConfig, ServerAppComponents
 from flwr.common import ndarrays_to_parameters, Context
 
 from src.classes.trainer import Trainer
-from src.classes.cifar100_dataset import CIFAR100Dataset_v2
+from src.classes.dataset import CIFAR100Dataset
 
 
 # 1) Define Flower client
@@ -23,7 +23,8 @@ class FLClient(NumPyClient):
         self.test_loader = test_loader
         print(f"Client {self.cid} instantiated.")
 
-    def get_parameters(self) -> List[np.ndarray]:
+    def get_parameters(self, config) -> List[np.ndarray]:
+        print(f"[Client config: ]", config)
         print(f"[Client {self.cid}] get_parameters")
 
         # Return model weights as a list of NumPy arrays
@@ -68,7 +69,7 @@ class FLClient(NumPyClient):
 
 # 2) Helper to create clients
 def client_fn(
-    context: Context, dataset: CIFAR100Dataset_v2, split_type="iid", **trainer_params
+    context: Context, dataset: CIFAR100Dataset, split_type="iid", **trainer_params
 ):
 
     # Note: each client gets a different trainloader/valloader, so each client
@@ -109,4 +110,3 @@ def server_fn(context: Context, num_rounds: int, **kwargs):
 
     config = ServerConfig(num_rounds=num_rounds)
     return ServerAppComponents(strategy=strategy, config=config)
-

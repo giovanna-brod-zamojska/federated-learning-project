@@ -6,6 +6,7 @@ ipykernel==6.29.5
 torchmetrics==1.7.1
 flwr[simulation]==1.18.0
 
+ipywidgets
 
 # experiment logging
 wandb
