@@ -34,7 +34,6 @@ class CIFAR100Dataset:
     ):
 
         self.data_dir = data_dir
-        self.resized_data_dir = "./data_resized"
         self.val_split = val_split
         self.seed = seed
 
