@@ -314,7 +314,7 @@ class Trainer(BaseTrainer):
         epochs: int = 1,
         use_wandb: bool = False,
         metric_for_best_model: str = "accuracy",
-        checkpoint_dir: str = "/checkpoints",
+        checkpoint_dir: str = "./checkpoints",
         **kwargs,
     ):
         self.model = torch.hub.load("facebookresearch/dino:main", "dino_vits16")

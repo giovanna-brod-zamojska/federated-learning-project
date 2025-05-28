@@ -23,7 +23,8 @@ class FLClient(NumPyClient):
         self.test_loader = test_loader
         print(f"Client {self.cid} instantiated.")
 
-    def get_parameters(self) -> List[np.ndarray]:
+    def get_parameters(self, config) -> List[np.ndarray]:
+        print(f"[Client config: ]", config)
         print(f"[Client {self.cid}] get_parameters")
 
         # Return model weights as a list of NumPy arrays
@@ -109,4 +110,3 @@ def server_fn(context: Context, num_rounds: int, **kwargs):
 
     config = ServerConfig(num_rounds=num_rounds)
     return ServerAppComponents(strategy=strategy, config=config)
-
