@@ -23,6 +23,7 @@ class BaseTrainer:
         use_wandb: bool = False,
         scheduler: Optional[nn.Module] = None,
         checkpoint_dir: str = "./checkpoints",
+        checkpoint_name: str = None,
         metric_for_best_model: str = "accuracy",
         unfreeze_at_epoch: int = None,
     ):
@@ -38,6 +39,7 @@ class BaseTrainer:
         self.scheduler = scheduler if scheduler else None
 
         self.checkpoint_dir = checkpoint_dir
+        self.checkpoint_name = checkpoint_name
         os.makedirs(self.checkpoint_dir, exist_ok=True)
         print(f"Checkpoint directory: {self.checkpoint_dir}")
 
@@ -242,6 +244,7 @@ class BaseTrainer:
                 },
                 is_best,
                 self.checkpoint_dir,
+                self.checkpoint_name,
             )
 
             if self.use_wandb:
@@ -280,14 +283,24 @@ class BaseTrainer:
         return test_metrics
 
     @staticmethod
-    def save_checkpoint(state, is_best, checkpoint_dir):
+    def save_checkpoint(state, is_best, checkpoint_dir, checkpoint_name: str = None):
         """Save checkpoint to disk"""
+        last_checkpoint = (
+            "model_last.pth"
+            if not checkpoint_name
+            else f"model_last_{checkpoint_name}.pth"
+        )
+        best_checkpoint = (
+            "model_best.pth"
+            if not checkpoint_name
+            else f"model_best_{checkpoint_name}.pth"
+        )
 
-        filename = os.path.join(checkpoint_dir, "checkpoint.pth")
+        filename = os.path.join(checkpoint_dir, last_checkpoint)
         torch.save(state, filename)
         print(f"Checkpoint saved to {filename}")
         if is_best:
-            best_filename = os.path.join(checkpoint_dir, "model_best.pth")
+            best_filename = os.path.join(checkpoint_dir, best_checkpoint)
             torch.save(state, best_filename)
             print(f"(Best) Checkpoint saved to {best_filename}")
 

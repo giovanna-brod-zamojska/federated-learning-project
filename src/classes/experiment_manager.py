@@ -80,12 +80,13 @@ class ExperimentManager:
         for idx in range(start_idx, len(self.param_grid)):
 
             config = self.param_grid[idx]
-            
+
             self.set_seed(config["seed"])
             dataset = dataset_class(seed=config["seed"])
 
             # summarize the config params into a str to have a detailed run description
             notes = ", ".join(f"{k}={v}" for k, v in config.items())
+            checkpoint_name = "-".join(f"{k}{v}" for k, v in config.items())
 
             print(
                 f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {config}"
@@ -103,9 +104,7 @@ class ExperimentManager:
                     reinit=True,  # Reinitialize WandB for each run
                 )
 
-            _, train_loader, val_loader, _ = self.setup_dataset(
-                dataset, config
-            )
+            _, train_loader, val_loader, _ = self.setup_dataset(dataset, config)
 
             trainer = trainer_class(
                 **config,
@@ -113,6 +112,7 @@ class ExperimentManager:
                 use_wandb=self.use_wandb,
                 metric_for_best_model=metric_for_best_model,
                 checkpoint_dir=self.checkpoint_dir,
+                checkpoint_name=checkpoint_name,
             )
 
             metric = trainer.train(

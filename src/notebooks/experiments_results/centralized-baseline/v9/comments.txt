@@ -1,0 +1,101 @@
+
+# Experiment v9 (google colab T4 GPU): 
+
+------------------
+
+BATCH SIZE 64
+
+effect of momentum: 0.9 better than 0.95 
+
+effect of the learning rate: it is the one influencing more the learning curve and the validation accuracy
+--> FOR A BATCH SIZE OF 64, THE BEST LEARNING RATE IS the lowest, opposite to the best one when bs=128: 
+
+0.01 > 0.05 > 0.1
+
+# Running experiment 5/6 with config: {'batch_size': 64, 'lr': 0.01, 'weight_decay': 0.0005, 'momentum': 0.9, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+# Running experiment 6/6 with config: {'batch_size': 64, 'lr': 0.01, 'weight_decay': 0.0005, 'momentum': 0.95, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 3/6 with config: {'batch_size': 64, 'lr': 0.05, 'weight_decay': 0.0005, 'momentum': 0.9, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+# Running experiment 1/6 with config: {'batch_size': 64, 'lr': 0.1, 'weight_decay': 0.0005, 'momentum': 0.9, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 4/6 with config: {'batch_size': 64, 'lr': 0.05, 'weight_decay': 0.0005, 'momentum': 0.95, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+# Running experiment 2/6 with config: {'batch_size': 64, 'lr': 0.1, 'weight_decay': 0.0005, 'momentum': 0.95, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+
+Next experiment for batch size 64: 
+lr: 0.005, 0.001 (?)
+wd: 5e-4
+mom: 0.9
+
+
+-------
+
+BATCH SIZE 128
+
+# Running experiment 5/6 with config: {'batch_size': 128, 'lr': 0.01, 'weight_decay': 0.0005, 'momentum': 0.9, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 6/6 with config: {'batch_size': 128, 'lr': 0.01, 'weight_decay': 0.0005, 'momentum': 0.95, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 3/6 with config: {'batch_size': 128, 'lr': 0.05, 'weight_decay': 0.0005, 'momentum': 0.9, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 4/6 with config: {'batch_size': 128, 'lr': 0.05, 'weight_decay': 0.0005, 'momentum': 0.95, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 1/6 with config: {'batch_size': 128, 'lr': 0.1, 'weight_decay': 0.0005, 'momentum': 0.9, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+# Running experiment 2/6 with config: {'batch_size': 128, 'lr': 0.1, 'weight_decay': 0.0005, 'momentum': 0.95, 'epochs': 5, 'seed': 42, 'num_workers': 4}
+
+
+by combining results of experiment v8, best lr  for bs 128 is 0.01
+
+Next experiment for batch size 128: 
+lr: 0.01
+wd: 5e-4
+mom: 0.9
+
+---
+
+concerning the difference between 128 e 64 batch sizes, 
+given the above two experiments, the batch size of 128 resulted in slightly better accuracy for all configurations
+(always considering 5 epochs, so we are assuming the results will be consisted also for a higher number of epochs)
+the final baseline will be probably trained using batch 128
+
+
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7357000112533569
+    },
+    {
+        "config": {
+            "batch_size": 64,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7329999804496765
+    },
+
+But we have to firstly find the best learning rate for batch size 64, maybe it will have a higher accuracy :
+
+--------
+experiment batch size 64 + lr 0.001 (because it was not included in the above experiments), results:
+
+ config: {
+    "batch_size": 64,
+    "lr": 0.001,
+    "weight_decay": 0.0005,
+    "momentum": 0.9,
+    "epochs": 5,
+    "seed": 42,
+    "num_workers": 4
+} with validation accuracy: 70.34%
