@@ -1,13 +1,13 @@
 import os
 import torch
 import random
+import numpy as np
 from typing import Dict, Optional, List
 from collections import defaultdict
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset, Subset, random_split, DataLoader
 
-
-
+     
 class TransformedSubset(Dataset):
     def __init__(self, subset, transform=None):
         self.subset = subset
@@ -115,68 +115,70 @@ class CIFAR100Dataset:
         return self.class_count
 
     def create_iid_splits(self, num_clients: int) -> List[Dict[str, Dataset]]:
+        """
+        Create an I.I.D. split of the CIFAR-100 training set:
+        each client receives an equal number of samples randomly drawn 
+        from the full dataset (uniformly across all classes).
+        
+        Each client's data is also split into a local train/val subset.
+        """
+        num_samples = len(self.train_data)
+        samples_per_client = num_samples // num_clients
 
-        # THE FOLLOWING IS AUTOMATICALLY GENERATED CODE
-        # TODO: implement/correct but keeping the usage of self._train_test_split and the output signature
-
-        # Similar to _iid_split, but store splits internally
-        num_samples = len(self.dataset["train"])
+        # Generate shuffled indices for reproducibility
         indices = torch.randperm(
             num_samples, generator=torch.Generator().manual_seed(self.seed)
         ).tolist()
-        split_size = num_samples // num_clients
 
         iid_partitions = []
 
         for i in range(num_clients):
-            start = i * split_size
-            end = num_samples if i == num_clients - 1 else (i + 1) * split_size
+            start = i * samples_per_client
+            end = (i + 1) * samples_per_client if i < num_clients - 1 else num_samples
             client_indices = indices[start:end]
 
-            subset = Subset(self.dataset["train"], client_indices)
-            # Split train subset into train/val per client
+            subset = Subset(self.train_data, client_indices)
             train_subset, val_subset = self._train_test_split(subset)
 
             iid_partitions.append({"train": train_subset, "val": val_subset})
 
         return iid_partitions
 
-    def create_noniid_splits(
-        self, num_clients: int, nc: int
-    ) -> List[Dict[str, Dataset]]:
 
-        return None
-        # THE FOLLOWING IS AUTOMATICALLY GENERATED CODE
-        # TODO: implement/correct but keeping the usage of self._train_test_split and the output signature
+    def create_noniid_splits(self, num_clients: int, nc: int) -> List[Dict[str, Dataset]]:
+        """
+        Create a non-IID split of the CIFAR-100 training set:
+        each client receives samples from exactly Nc randomly selected classes.
+        """
+        random.seed(self.seed)
 
-        # Similar to _noniid_split but store splits internally, each subset split into train/val
-        # Map label to indices, assign classes, then split train/val per client
         label_to_indices = defaultdict(list)
-        for idx, (_, label) in enumerate(self.dataset["train"]):
+        for idx, (_, label) in enumerate(self.train_data):
             label_to_indices[label].append(idx)
 
-        labels = list(label_to_indices.keys())
-        random.seed(self.seed)
-        random.shuffle(labels)
-        classes_per_client = nc
-        labels_per_client = [
-            labels[i * classes_per_client : (i + 1) * classes_per_client]
-            for i in range(num_clients)
-        ]
+        # Shuffle each class's indices
+        for indices in label_to_indices.values():
+            random.shuffle(indices)
 
+        all_labels = list(label_to_indices.keys())
         noniid_partitions = []
 
-        for client_labels in labels_per_client:
+        for _ in range(num_clients):
+            selected_classes = random.sample(all_labels, nc)
             client_indices = []
-            for lbl in client_labels:
-                client_indices.extend(label_to_indices[lbl])
-            subset = Subset(self.dataset["train"], client_indices)
 
+            for label in selected_classes:
+                take = min(len(label_to_indices[label]) // num_clients, 20)
+                client_indices.extend(label_to_indices[label][:take])
+                label_to_indices[label] = label_to_indices[label][take:]
+
+            subset = Subset(self.train_data, client_indices)
             train_subset, val_subset = self._train_test_split(subset)
 
             noniid_partitions.append({"train": train_subset, "val": val_subset})
 
         return noniid_partitions
+
 
     def create_base_partition(self) -> Dict[str, Dataset]:
         train_subset, val_subset = self._train_test_split()
