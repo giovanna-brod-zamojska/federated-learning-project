@@ -2,174 +2,12 @@ import os
 import torch
 import random
 import numpy as np
-from typing import Dict
-from torch.utils.data import Subset
-
 from typing import Dict, Optional, List
 from collections import defaultdict
 from torchvision import datasets, transforms
 from torch.utils.data import Dataset, Subset, random_split, DataLoader
 
-
-class CIFAR100Dataset:
-    """
-    The CIFAR100 dataset is an image dataset made of 50000 images, and 100 labels ranging from class 0 to 99.
-    Labels are equally distributed, therefore to each label correspond 500 images.
-    """
-
-    def __init__(self, data_dir="./data", val_split=0.2, seed=42):
-        self.data_dir = data_dir
-        self.val_split = val_split
-        self.seed = seed
-
-        self.transform = transforms.Compose(
-            [
-                transforms.RandomHorizontalFlip(),
-                transforms.RandomCrop(32, padding=4),
-                transforms.ToTensor(),
-            ]
-        )
-
-        # Check if the dataset exists, if not, download it
-        self.dataset = self._load_or_download_dataset()
-
-        self.train_data, self.test_data = self.dataset["train"], self.dataset["test"]
-        self.class_count = len(self.train_data.classes)
-
-    def get_num_labels(self) -> int:
-        """
-        Returns the number of classes in the dataset.
-        """
-        return self.class_count
-
-    def _load_or_download_dataset(self):
-        # Define dataset paths
-        train_path = os.path.join(self.data_dir, "cifar-100-python", "train")
-        test_path = os.path.join(self.data_dir, "cifar-100-python", "test")
-
-        # Check if the dataset already exists
-        if os.path.exists(train_path) and os.path.exists(test_path):
-            print(f"Dataset found at {self.data_dir}. Loading the dataset...")
-            return {
-                "train": datasets.CIFAR100(
-                    root=self.data_dir,
-                    train=True,
-                    download=False,
-                    transform=self.transform,
-                ),
-                "test": datasets.CIFAR100(
-                    root=self.data_dir,
-                    train=False,
-                    download=False,
-                    transform=self.transform,
-                ),
-            }
-        else:
-            print(f"Dataset not found in {self.data_dir}. Downloading the dataset...")
-            # If the dataset doesn't exist, download it
-            return {
-                "train": datasets.CIFAR100(
-                    root=self.data_dir,
-                    train=True,
-                    download=True,
-                    transform=self.transform,
-                ),
-                "test": datasets.CIFAR100(
-                    root=self.data_dir,
-                    train=False,
-                    download=True,
-                    transform=self.transform,
-                ),
-            }
-
-    def _split_train_val(self):
-        total_len = len(self.train_data)
-        val_len = int(self.val_split * total_len)
-        train_len = total_len - val_len
-        return random_split(
-            self.train_data,
-            [train_len, val_len],
-            generator=torch.Generator().manual_seed(self.seed),
-        )
-
-    def get_data_statistics(self, dataset):
-        label_counts = defaultdict(int)
-        for _, label in dataset:
-            label_counts[label] += 1
-        return dict(sorted(label_counts.items()))
-
-    def print_stats(self):
-        print(f"Train size: {len(self.train_data)}, Test size: {len(self.test_data)}")
-        print("Train label distribution:", self.get_data_statistics(self.train_data))
-
-    def get_split(self, split_type="classic", num_clients=10, nc=2):
-        if split_type == "classic":
-            train_data, val_data = self._split_train_val()
-            return {"train": train_data, "val": val_data, "test": self.test_data}
-        elif split_type == "iid":
-            return self._iid_split(num_clients)
-        elif split_type == "noniid":
-            return self._noniid_split(num_clients, nc)
-        else:
-            raise ValueError(f"Unknown split_type: {split_type}")
-
-    def _iid_split(self, num_clients: int) -> Dict[int, Subset]:
-        """
-        Create an I.I.D. split of the CIFAR-100 training set.
-        Each client receives the same number of randomly selected samples,
-        uniformly distributed across all classes.
-        """
-        num_samples = len(self.train_data)
-        samples_per_client = num_samples // num_clients
-
-        # Shuffle the indices
-        indices = torch.randperm(num_samples, generator=torch.Generator().manual_seed(self.seed)).tolist()
-
-        client_dict = {}
-        for i in range(num_clients):
-            start = i * samples_per_client
-            end = (i + 1) * samples_per_client
-            client_indices = indices[start:end]
-            client_dict[i] = Subset(self.train_data, client_indices)
-
-        return client_dict
-
-
-
-    def _noniid_split(self, num_clients: int, nc: int) -> Dict[int, Subset]:
-        """
-        Create a non-I.I.D. split of the CIFAR-100 training set.
-        Each client receives samples belonging to Nc random classes only.
-        """
-        random.seed(self.seed)
-
-        # Group indices by class
-        class_to_indices = defaultdict(list)
-        for idx, (_, label) in enumerate(self.train_data):
-            class_to_indices[label].append(idx)
-
-        # Shuffle each class' indices
-        for indices in class_to_indices.values():
-            random.shuffle(indices)
-
-        all_labels = list(class_to_indices.keys())
-        client_dict = {}
-
-        for client_id in range(num_clients):
-            selected_classes = random.sample(all_labels, nc)
-            client_indices = []
-
-            for cls in selected_classes:
-                take = min(len(class_to_indices[cls]) // num_clients, 20)
-                client_indices.extend(class_to_indices[cls][:take])
-                class_to_indices[cls] = class_to_indices[cls][take:]  # remove used
-
-            client_dict[client_id] = Subset(self.train_data, client_indices)
-
-        return client_dict
-
-
-
+     
 class TransformedSubset(Dataset):
     def __init__(self, subset, transform=None):
         self.subset = subset
@@ -185,7 +23,7 @@ class TransformedSubset(Dataset):
         return len(self.subset)
 
 
-class CIFAR100Dataset_v2:
+class CIFAR100Dataset:
 
     def __init__(
         self,
@@ -197,19 +35,28 @@ class CIFAR100Dataset_v2:
     ):
 
         self.data_dir = data_dir
+        self.resized_data_dir = "./data_resized"
         self.val_split = val_split
         self.seed = seed
 
         self.train_transform = transforms.Compose(
             [
+                transforms.RandomResizedCrop(224),
                 transforms.RandomHorizontalFlip(),
-                transforms.RandomCrop(32, padding=4),
                 transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
+
         self.test_transform = transforms.Compose(
             [
+                transforms.Resize(224),
                 transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
             ]
         )
 
@@ -237,7 +84,7 @@ class CIFAR100Dataset_v2:
             print(f"Dataset found at {self.data_dir}. Loading...")
             download = False
         else:
-            print(f"Dataset not found at {self.data_dir}. Downloading...")
+            print(f"Dataset not found at {self.data_dir}.")
 
         return {
             "train": datasets.CIFAR100(
@@ -368,18 +215,22 @@ class CIFAR100Dataset_v2:
 
     def get_dataloaders(
         self,
-        client_id: Optional[int],
-        split_type: Optional[str],
+        client_id: Optional[int] = None,
+        split_type: Optional[str] = None,
         batch_size: int = 32,
         pin_memory=True,
         worker_init_fn=None,
         num_workers=4,
+        seed: int = 42,
     ):
         """
         Return Train Val and Test DataLoaders for a client partition, if specified,
         otherwise for the base partition.
         split_type: "iid" or "noniid"
         """
+        g = torch.Generator()
+        g.manual_seed(seed)
+
         dataset = self.base_partition
         if client_id:
             if split_type == "iid":
@@ -398,6 +249,7 @@ class CIFAR100Dataset_v2:
             pin_memory=pin_memory,
             num_workers=num_workers,
             worker_init_fn=worker_init_fn,
+            generator=g,
         )
         val_dataloader = DataLoader(
             dataset["val"],
@@ -406,6 +258,7 @@ class CIFAR100Dataset_v2:
             pin_memory=pin_memory,
             num_workers=num_workers,
             worker_init_fn=worker_init_fn,
+            generator=g,
         )
         test_dataloader = DataLoader(
             self.dataset["test"],
@@ -414,5 +267,6 @@ class CIFAR100Dataset_v2:
             pin_memory=pin_memory,
             num_workers=num_workers,
             worker_init_fn=worker_init_fn,
+            generator=g,
         )
         return train_dataloader, val_dataloader, test_dataloader
