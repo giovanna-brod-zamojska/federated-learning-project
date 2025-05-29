@@ -1,6 +1,8 @@
 
 # Experiment v9 (google colab T4 GPU): 
 
+NOTICE: all experimetns run with optimizer's T_max=epochs=5 (the setting of T_max) influences a lot the training curve!!
+
 ------------------
 
 BATCH SIZE 64
@@ -88,14 +90,61 @@ the final baseline will be probably trained using batch 128
 But we have to firstly find the best learning rate for batch size 64, maybe it will have a higher accuracy :
 
 --------
-experiment batch size 64 + lr 0.001 (because it was not included in the above experiments), results:
+experiment batch size 64 + lr  0.005, 0.001, 0.0005,(because it was not included in the above experiments), results:
 
- config: {
-    "batch_size": 64,
-    "lr": 0.001,
-    "weight_decay": 0.0005,
-    "momentum": 0.9,
-    "epochs": 5,
-    "seed": 42,
-    "num_workers": 4
-} with validation accuracy: 70.34%
+{
+    "config": {
+        "batch_size": 64,
+        "lr": 0.005,
+        "weight_decay": 0.0005,
+        "momentum": 0.9,
+        "epochs": 5,
+        "seed": 42,
+        "num_workers": 4
+    },
+    "val_metric": 0.7330999970436096
+}
+
+{
+    "config": {
+        "batch_size": 64,
+        "lr": 0.001,
+        "weight_decay": 0.0005,
+        "momentum": 0.9,
+        "epochs": 5,
+        "seed": 42,
+        "num_workers": 4
+    },
+    "val_metric": 0.7034000158309937
+}
+{
+    "config": {
+        "batch_size": 64,
+        "lr": 0.0005,
+        "weight_decay": 0.0005,
+        "momentum": 0.9,
+        "epochs": 5,
+        "seed": 42,
+        "num_workers": 4
+    },
+    "val_metric": 0.6676999926567078
+}
+
+also for batch size the best lr are 0.01 and also 0.005
+---------
+
+
+REsult it that batch size 128 with lr 0.01 has the highest validation accuracy for the first 5 epochs
+
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7357000112533569
+    },

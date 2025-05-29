@@ -336,7 +336,7 @@ class Trainer(BaseTrainer):
 
         if scheduler_type == "CosineAnnealingLR":
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
-                optimizer, T_max=epochs, eta_min=0
+                optimizer, T_max=kwargs.get("T_max", epochs), eta_min=0
             )
         else:
             raise ValueError(
