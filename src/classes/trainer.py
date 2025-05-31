@@ -26,6 +26,7 @@ class BaseTrainer:
         checkpoint_name: str = None,
         metric_for_best_model: str = "accuracy",
         unfreeze_at_epoch: int = None,
+        accum_steps: int = 1,
     ):
 
         self.num_classes = num_classes
@@ -37,6 +38,7 @@ class BaseTrainer:
         self.loss_fn = loss_fn
         self.optimizer = optimizer
         self.scheduler = scheduler if scheduler else None
+        self.accum_steps = accum_steps
 
         self.checkpoint_dir = checkpoint_dir
         self.checkpoint_name = checkpoint_name
@@ -124,9 +126,15 @@ class BaseTrainer:
 
                 # Backpropagation
                 if is_train:
-                    self.optimizer.zero_grad()  # zeros all the .grad attribute for all the params stored in the optimizer's param_group
-                    loss.backward()  # compute the loss for all the parameters and stores it in .grad attibute
-                    self.optimizer.step()  # it loops on its stored params and uses the .grad value (if not None) for updating the param value with the new weight (using the optimizer specific logic)
+                    loss = loss / self.accum_steps if self.accum_steps > 1 else loss
+                    loss.backward()
+
+                    # Step optimizer and zero_grad every accum_steps or every batch if accum_steps=1 or not set
+                    if (batch_idx + 1) % (
+                        self.accum_steps if self.accum_steps > 1 else 1
+                    ) == 0:
+                        self.optimizer.step()
+                        self.optimizer.zero_grad()
 
                 # Metrics and logging
                 running_loss += loss.item()
@@ -141,7 +149,6 @@ class BaseTrainer:
                         "loss": running_loss / total,
                         "f1_macro": metrics_dict["f1_macro"].item(),
                         "f1_micro": metrics_dict["f1_micro"].item(),
-                        "accuracy": correct / total,
                         "accuracy": metrics_dict["accuracy"].item(),
                     }
                 )
@@ -312,6 +319,7 @@ class Trainer(BaseTrainer):
         num_classes: int,
         scheduler_type: str = "CosineAnnealingLR",
         epochs: int = 1,
+        optimizer_type: str = "SGD",
         use_wandb: bool = False,
         metric_for_best_model: str = "accuracy",
         checkpoint_dir: str = "./checkpoints",
@@ -327,12 +335,28 @@ class Trainer(BaseTrainer):
         unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
         self._train_head_only()
 
-        optimizer = torch.optim.SGD(
-            filter(lambda p: p.requires_grad, self.model.parameters()),
-            lr=kwargs.get("lr", 1e-3),
-            momentum=kwargs.get("momentum", 0),
-            weight_decay=kwargs.get("weight_decay", 0),
-        )
+        lr = kwargs.get("lr", 1e-2)
+        mom = kwargs.get("momentum", 0.9)
+        wd = kwargs.get("weight_decay", 0)
+
+        if optimizer_type == "SGD":
+            optimizer = torch.optim.SGD(
+                filter(lambda p: p.requires_grad, self.model.parameters()),
+                lr=lr,
+                momentum=mom,
+                weight_decay=wd,
+            )
+        elif optimizer_type == "AdamW":
+            optimizer = torch.optim.AdamW(
+                filter(lambda p: p.requires_grad, self.model.parameters()),
+                lr=lr,
+                weight_decay=wd,
+                betas=kwargs.get("betas", (0.9, 0.999)),
+            )
+        else:
+            raise ValueError(
+                f"Missing configuration for optimizer type: {optimizer_type}."
+            )
 
         if scheduler_type == "CosineAnnealingLR":
             scheduler = torch.optim.lr_scheduler.CosineAnnealingLR(
@@ -355,6 +379,7 @@ class Trainer(BaseTrainer):
             "num_classes": num_classes,
             "checkpoint_dir": checkpoint_dir,
             "unfreeze_at_epoch": unfreeze_at_epoch,
+            "accum_steps": kwargs.get("accum_steps", 1),
         }
 
         super().__init__(**base_trainer_args)
