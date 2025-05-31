@@ -100,7 +100,7 @@ class ExperimentManager:
                 wandb.init(
                     project=self.project_name,
                     group=self.group_name,  # Group runs under this name
-                    name=f"run_{today}_{run_name}_config{idx + 1}",  # Name of the run
+                    name=f"run_{run_name}_{checkpoint_name}",  # Name of the run
                     notes=notes,
                     config=config,
                     tags=run_tags,
