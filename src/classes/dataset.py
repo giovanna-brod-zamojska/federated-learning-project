@@ -50,6 +50,7 @@ class CIFAR100Dataset:
         )
 
         if augment and augment in ["trivial", "rand"]:
+            print(f"Using {augment} transform.")
 
             self.train_transform = transforms.Compose(
                 [
