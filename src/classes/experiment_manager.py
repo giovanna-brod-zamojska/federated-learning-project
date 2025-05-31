@@ -82,7 +82,11 @@ class ExperimentManager:
             config = self.param_grid[idx]
 
             self.set_seed(config["seed"])
-            dataset = dataset_class(seed=config["seed"])
+
+            if hasattr(config, "augment"):
+                dataset = dataset_class(seed=config["seed"], augment=config["augment"])
+            else:
+                dataset = dataset_class(seed=config["seed"])
 
             # summarize the config params into a str to have a detailed run description
             notes = ", ".join(f"{k}={v}" for k, v in config.items())
