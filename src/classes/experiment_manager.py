@@ -69,7 +69,6 @@ class ExperimentManager:
         best_metric = 0.0
         best_config = None
         metric_for_best_model = metric_for_best_config
-        today = date.today()
 
         start_idx = (
             resume_training_from_config - 1
@@ -82,7 +81,12 @@ class ExperimentManager:
             config = self.param_grid[idx]
 
             self.set_seed(config["seed"])
-            dataset = dataset_class(seed=config["seed"])
+
+            print(config)
+
+            dataset = dataset_class(
+                seed=config["seed"], augment=config.get("augment", False)
+            )
 
             # summarize the config params into a str to have a detailed run description
             notes = ", ".join(f"{k}={v}" for k, v in config.items())
@@ -92,11 +96,26 @@ class ExperimentManager:
                 f"\nRunning experiment {idx + 1}/{len(self.param_grid)} with config: {config}"
             )
 
+            run_tags.extend(
+                [
+                    f"bs{config['batch_size']}",
+                    f"lr{config['lr']}",
+                    f"Tmax{config.get('Tmax', config['epochs'])}",
+                    f"ep{config['epochs']}",
+                    f"wd{config['weight_decay']}",
+                    f"accum_steps{config['accum_steps']}",
+                    f"momentum{config['momentum']}",
+                    f"seed{config['seed']}",
+                    f"optimizer_type{config['optimizer_type']}",
+                    f"augment{config['augment']}",
+                ]
+            )
+
             if self.use_wandb:
                 wandb.init(
                     project=self.project_name,
                     group=self.group_name,  # Group runs under this name
-                    name=f"run_{today}_{run_name}_config{idx + 1}",  # Name of the run
+                    name=f"run_{run_name}_{checkpoint_name}",  # Name of the run
                     notes=notes,
                     config=config,
                     tags=run_tags,

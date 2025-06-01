@@ -31,6 +31,7 @@ class CIFAR100Dataset:
         seed=42,
         num_clients: Optional[int] = 100,
         nc: Optional[float] = 2,
+        augment: str = None,
     ):
 
         self.data_dir = data_dir
@@ -47,6 +48,25 @@ class CIFAR100Dataset:
                 ),
             ]
         )
+
+        if augment and augment in ["trivial", "rand"]:
+            print(f"Using {augment} transform.")
+
+            self.train_transform = transforms.Compose(
+                [
+                    transforms.RandomResizedCrop(224),
+                    transforms.RandomHorizontalFlip(),
+                    (
+                        transforms.TrivialAugmentWide()
+                        if augment == "trivial"
+                        else transforms.RandAugment()
+                    ),
+                    transforms.ToTensor(),
+                    transforms.Normalize(
+                        mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                    ),
+                ]
+            )
 
         self.test_transform = transforms.Compose(
             [

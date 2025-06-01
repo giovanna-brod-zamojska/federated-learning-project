@@ -90,7 +90,11 @@ compare with the previous results:
 
 MODELS OVERVIEW
 
-1. CENTRALIZED BASELINE MODEL
+https://github.com/facebookresearch/dino
+https://ai.meta.com/blog/dino-paws-computer-vision-with-self-supervised-transformers-and-10x-more-efficient-training/
+https://arxiv.org/abs/2104.14294
+
+1. CENTRALIZED BASELINE MODEL 
 
 - all dataset, split 60-20-20
 - SGDM optimizer (lr, momentum, weight decay: hyperparameters)
