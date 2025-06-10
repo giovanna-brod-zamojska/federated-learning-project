@@ -6,7 +6,7 @@ from time import time
 from tqdm import tqdm
 from typing import Optional
 from torch.utils.data import DataLoader
-from src.classes.metrics import Metrics
+from src.centralized_baseline.metrics import Metrics
 
 
 class BaseTrainer:

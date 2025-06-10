@@ -7,8 +7,8 @@ from datetime import date
 from torch.utils.data import DataLoader
 from typing import Dict, Any, List, Tuple
 
-from src.classes.trainer import BaseTrainer
-from src.classes.dataset import CIFAR100Dataset
+from src.centralized_baseline.trainer import BaseTrainer
+from src.centralized_baseline.dataset import CIFAR100Dataset
 
 
 class ExperimentManager:
