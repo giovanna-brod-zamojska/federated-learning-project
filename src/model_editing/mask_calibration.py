@@ -44,7 +44,7 @@ def _compute_approximated_fisher_scores(
 
         model.zero_grad()
         # outputs = model(inputs)
-        features = model(inputs)
+        features = model(inputs)  # only backbone if using torch.load(dino_model..)
         outputs = model.head(features)
         loss = loss_fn(outputs, targets)
         loss.backward()
@@ -59,6 +59,7 @@ def _compute_approximated_fisher_scores(
     return scores
 
 
+# too much time
 def _compute_fisher_scores(
     model: nn.Module,
     dataloader: DataLoader,
@@ -116,8 +117,8 @@ def calibrate_mask(
     sparsity: float = 0.9,
     rounds: int = 5,
     num_batches: Optional[int] = None,
-    strategy: str = "least",
-    approximate_fisher: bool = False,
+    strategy: str = "train_least_important",
+    approximate_fisher: bool = True,
     loss_fn: nn.Module = nn.CrossEntropyLoss(),
 ) -> Dict[str, torch.Tensor]:
     print("*" * 50)
@@ -139,7 +140,7 @@ def calibrate_mask(
             f"({_num_zero_params(mask)}/{_num_total_params(mask)} parameters zeroed out)\n"
         )
 
-        # Recompute Fisher scores at each round.
+        # Recompute Fisher scores at each round
         _func = (
             _compute_approximated_fisher_scores
             if approximate_fisher
@@ -154,22 +155,12 @@ def calibrate_mask(
             device=device,
         )
 
-        # accumulated scores
         all_scores = torch.cat([v.flatten() for v in scores.values()])
 
         keep_fraction = (1 - sparsity) ** (r / rounds)
-
-        print(f"Max score found: {all_scores.max().item()}")
         total_params = all_scores.numel()
-
-        # we keep (mask = 1) less parameters at each round (we set more parameters to 0 each rounds)
-        # so we gradually decrease the number of trainable parameters
-
-        k = int(
-            keep_fraction * total_params
-        )  # k elements to keep, be trainable,  mask = 1
+        k = int(keep_fraction * total_params)
         print(f"Current keep fraction: {keep_fraction:.4f} | Keeping only top k: {k}")
-        # Number of parameters to keep (trainable)
 
         if strategy == "train_least_important":
 
@@ -198,7 +189,7 @@ def calibrate_mask(
 
         print(
             f"After round {r} mask sparsity: {_compute_sparsity(mask):.4f} "
-            f"({_num_zero_params(mask)}/{_num_total_params(mask)} (={_num_zero_params(mask)}/{total_params}) zeroed params)"
+            f"({_num_zero_params(mask)}/{_num_total_params(mask)} zeroed params)"
         )
         print()
 
