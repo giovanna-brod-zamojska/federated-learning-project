@@ -24,19 +24,18 @@ class ModelEditingTrainer(BaseTrainer):
 
         self.change_classifier_layer(num_classes)
 
-        # pruning
+        mask = kwargs.get("mask", None)
         for name, param in self.model.named_parameters():
             if name in mask and mask[name].sum() == 0:
                 param.requires_grad = False
             else:
-                param.requires_grad = True   # Trainable
+                param.requires_grad = True  # Trainable
 
         unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
 
         lr = kwargs.get("lr", 1e-2)
         mom = kwargs.get("momentum", 0.9)
         wd = kwargs.get("weight_decay", 0)
-        mask = kwargs.get("mask", None)
 
         optimizer = SparseSGD(
             params=filter(lambda p: p.requires_grad, self.model.parameters()),
