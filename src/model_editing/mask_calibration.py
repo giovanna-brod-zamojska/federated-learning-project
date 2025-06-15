@@ -51,9 +51,8 @@ def _compute_approximated_fisher_scores(
             if param.grad is not None:
                 scores[name] += param.grad.detach() ** 2
 
-    # TODO: not sure this is correct or necessary
-    # for name in scores:
-    #     scores[name] /= total_batches
+    for name in scores:
+        scores[name] /= total_batches
 
     return scores
 
@@ -61,7 +60,7 @@ def _compute_approximated_fisher_scores(
 def _compute_fisher_scores(
     model: nn.Module,
     dataloader: DataLoader,
-    loss_fn: nn.Module,
+    loss_fn: nn.Module = None,
     num_batches: Optional[int] = None,
     mask: Optional[Dict[str, torch.Tensor]] = None,
     device: Optional[torch.device] = None,
@@ -85,6 +84,7 @@ def _compute_fisher_scores(
 
         inputs, targets = inputs.to(device), targets.to(device)
 
+        # Based on https://github.com/iurada/talos-task-arithmetic/blob/ae102473de0e57ebf625eca22e10781c371149ec/vision/pruners.py
         logits = model(inputs)
         outdx = (
             torch.distributions.Categorical(logits=logits)
@@ -155,29 +155,37 @@ def calibrate_mask(
         # accumulated scores
         all_scores = torch.cat([v.flatten() for v in scores.values()])
 
+        current_keep_ratio = sparsity ** (
+            r / rounds
+        )  # fraction kept decreases exponentially
+
         print(f"Max score found: {all_scores.max().item()}")
-        target_sparsity = sparsity ** (r / rounds)
         total_params = all_scores.numel()
 
-        # if sparsity = 0.9 , we want the 90% values to be 0 (frozen -not trainable)
+        # we keep (mask = 1) less parameters at each round (we set more parameters to 0 each rounds)
+        # so we gradually decrease the number of trainable parameters
+
         k = int(
-            (1 - target_sparsity) * total_params
+            current_keep_ratio * total_params
         )  # k elements to keep /  be trainable /  mask = 1
-        print(f"Target Sparsity: {target_sparsity:.4f} | k: {k}")
+        print(
+            f"Current keep fraction: {current_keep_ratio:.4f} | Keeping only top k: {k}"
+        )
+        # Number of parameters to keep (trainable)
 
         if strategy == "train_least_important":
+
             # select the k-th smallest score as the threshold
             threshold, _ = torch.kthvalue(all_scores, k)
-            threshold_v2 = torch.topk(all_scores, k, largest=False).values[-1]
-
             print(f"Threshold: {threshold}")
 
             # set as trainable (mask=1) all parameters with scores below this threshold
             for name, score in scores.items():
                 new_mask = (score <= threshold).float()
-                mask[name] = mask[name] * new_mask  # Keep previous frozen params frozen
+                mask[name] = mask[name] * new_mask  # retain previously zeroed params
 
         elif strategy == "train_most_important":
+            raise NotImplementedError()
             # select the k-th largest score as the threshold
             threshold = torch.topk(all_scores, k, largest=True).values[-1]
             print("Threshold:", threshold)
@@ -185,17 +193,16 @@ def calibrate_mask(
             # set as trainable (mask=1) all parameters with scores above this threshold
             for name, score in scores.items():
                 new_mask = (score >= threshold).float()
-                # we will set as trainable (mask=1) all parameters with scores above this threshold
-                mask[name] = mask[name] * new_mask  # Keep previous frozen params frozen
+                mask[name] = mask[name] * new_mask  # retain previously zeroed params
+
         else:
             raise ValueError(f"Unknown strategy: {strategy}")
 
-        
-
         print(
-            f"Round {r}. Reached Sparsity: {_compute_sparsity(mask):.4f} "
-            f"({_num_zero_params(mask)}/{_num_total_params(mask)} parameters zeroed out)"
+            f"After round {r} mask sparsity: {_compute_sparsity(mask):.4f} "
+            f"({_num_zero_params(mask)}/{_num_total_params(mask)} (={_num_zero_params(mask)}/{total_params}) zeroed params)"
         )
+        print()
 
     print("Progressive Mask Calibration completed.")
 

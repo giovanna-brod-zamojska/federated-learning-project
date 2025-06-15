@@ -32,7 +32,10 @@ class ModelEditingTrainer(BaseTrainer):
         mask = kwargs.get("mask", None)
 
         optimizer = SparseSGD(
-            filter(lambda p: p.requires_grad, self.model.parameters()),
+            params=filter(lambda p: p.requires_grad, self.model.parameters()),
+            named_params={
+                n: p for n, p in self.model.named_parameters() if p.requires_grad
+            },
             lr=lr,
             momentum=mom,
             weight_decay=wd,
@@ -66,5 +69,3 @@ class ModelEditingTrainer(BaseTrainer):
         super().__init__(**base_trainer_args)
 
         print("Trainer initialized.")
-    
-    
