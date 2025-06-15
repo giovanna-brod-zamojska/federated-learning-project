@@ -167,8 +167,10 @@ def calibrate_mask(
 
         if strategy == "train_least_important":
             # select the k-th smallest score as the threshold
-            threshold, _ = torch.kthvalue(input=all_scores, k=k, largest=False)
-            print("Threshold:", threshold)
+            threshold, _ = torch.kthvalue(all_scores, k)
+            threshold_v2 = torch.topk(all_scores, k, largest=False).values[-1]
+
+            print(f"Threshold: {threshold}, threshold topk: {threshold_v2}")
 
             # set as trainable (mask=1) all parameters with scores below this threshold
             for name, score in scores.items():
@@ -176,7 +178,7 @@ def calibrate_mask(
 
         elif strategy == "train_most_important":
             # select the k-th largest score as the threshold
-            threshold, _ = torch.kthvalue(input=all_scores, k=k, largest=True)
+            threshold = torch.topk(all_scores, k, largest=True).values[-1]
             print("Threshold:", threshold)
 
             # set as trainable (mask=1) all parameters with scores above this threshold
