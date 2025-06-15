@@ -155,9 +155,8 @@ def calibrate_mask(
         # accumulated scores
         all_scores = torch.cat([v.flatten() for v in scores.values()])
 
-        current_keep_ratio = sparsity ** (
-            r / rounds
-        )  # fraction kept decreases exponentially
+        current_sparsity = sparsity ** (r / rounds)  # sparsity decreases exponentially
+        keep_fraction = 1.0 - current_sparsity  # keep fraction increases
 
         print(f"Max score found: {all_scores.max().item()}")
         total_params = all_scores.numel()
@@ -166,11 +165,9 @@ def calibrate_mask(
         # so we gradually decrease the number of trainable parameters
 
         k = int(
-            current_keep_ratio * total_params
-        )  # k elements to keep /  be trainable /  mask = 1
-        print(
-            f"Current keep fraction: {current_keep_ratio:.4f} | Keeping only top k: {k}"
-        )
+            keep_fraction * total_params
+        )  # k elements to keep, be trainable,  mask = 1
+        print(f"Current keep fraction: {keep_fraction:.4f} | Keeping only top k: {k}")
         # Number of parameters to keep (trainable)
 
         if strategy == "train_least_important":
