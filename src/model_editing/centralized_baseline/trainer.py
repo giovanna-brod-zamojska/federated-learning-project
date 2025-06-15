@@ -24,6 +24,13 @@ class ModelEditingTrainer(BaseTrainer):
 
         self.change_classifier_layer(num_classes)
 
+        # pruning
+        for name, param in self.model.named_parameters():
+            if name in mask and mask[name].sum() == 0:
+                param.requires_grad = False
+            else:
+                param.requires_grad = True   # Trainable
+
         unfreeze_at_epoch = kwargs.get("unfreeze_at_epoch", None)
 
         lr = kwargs.get("lr", 1e-2)
