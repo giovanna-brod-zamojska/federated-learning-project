@@ -170,11 +170,12 @@ def calibrate_mask(
             threshold, _ = torch.kthvalue(all_scores, k)
             threshold_v2 = torch.topk(all_scores, k, largest=False).values[-1]
 
-            print(f"Threshold: {threshold}, threshold topk: {threshold_v2}")
+            print(f"Threshold: {threshold}")
 
             # set as trainable (mask=1) all parameters with scores below this threshold
             for name, score in scores.items():
                 new_mask = (score <= threshold).float()
+                mask[name] = mask[name] * new_mask  # Keep previous frozen params frozen
 
         elif strategy == "train_most_important":
             # select the k-th largest score as the threshold
@@ -185,11 +186,11 @@ def calibrate_mask(
             for name, score in scores.items():
                 new_mask = (score >= threshold).float()
                 # we will set as trainable (mask=1) all parameters with scores above this threshold
-
+                mask[name] = mask[name] * new_mask  # Keep previous frozen params frozen
         else:
             raise ValueError(f"Unknown strategy: {strategy}")
 
-        mask[name] = mask[name] * new_mask  # Keep previous frozen params frozen
+        
 
         print(
             f"Round {r}. Reached Sparsity: {_compute_sparsity(mask):.4f} "
