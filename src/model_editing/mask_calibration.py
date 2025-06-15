@@ -155,8 +155,7 @@ def calibrate_mask(
         # accumulated scores
         all_scores = torch.cat([v.flatten() for v in scores.values()])
 
-        current_sparsity = sparsity ** (r / rounds)  # sparsity decreases exponentially
-        keep_fraction = 1.0 - current_sparsity  # keep fraction increases
+        keep_fraction = (1 - sparsity) ** (r / rounds)
 
         print(f"Max score found: {all_scores.max().item()}")
         total_params = all_scores.numel()
