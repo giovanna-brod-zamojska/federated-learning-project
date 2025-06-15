@@ -35,6 +35,6 @@ class SparseSGD(SGD):
                 # Applying the gradient mask only if that name is in the mask
                 name = self.param_id_to_name.get(id(p))
                 if p.grad is not None and name in self.mask:
-                    p.grad.data *= self.grad_mask[name]
+                    p.grad.data *= self.mask[name]
 
         return super().step(closure)
