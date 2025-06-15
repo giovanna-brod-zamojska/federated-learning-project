@@ -43,7 +43,9 @@ def _compute_approximated_fisher_scores(
         inputs, targets = inputs.to(device), targets.to(device)
 
         model.zero_grad()
-        outputs = model(inputs)
+        # outputs = model(inputs)
+        features = model(inputs)
+        outputs = model.head(features)
         loss = loss_fn(outputs, targets)
         loss.backward()
 
