@@ -139,8 +139,6 @@ class ExperimentManager:
                 rounds = config.get("rounds", 5)
                 approximate_fisher = config.get("approximate_fisher", False)
 
-                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-
                 mask = calibrate_mask(
                     model,
                     train_loader,
@@ -152,7 +150,15 @@ class ExperimentManager:
                     approximate_fisher=approximate_fisher,
                 )
                 config["mask"] = mask
-                
+                run_tags.extend(
+                    [
+                        f"sparsity{sparsity}",
+                        f"num_batches{num_batches}",
+                        f"strategy{strategy}",
+                        f"rounds{rounds}",
+                        f"approximateFisher{approximate_fisher}",
+                    ]
+                )
 
             trainer = trainer_class(
                 **config,
@@ -171,6 +177,7 @@ class ExperimentManager:
             if self.use_wandb:
                 wandb.finish()
 
+            del config["mask"]
             result = {"config": config, "val_metric": metric}
             results.append(result)
             results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
