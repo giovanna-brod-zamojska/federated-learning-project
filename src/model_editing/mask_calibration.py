@@ -142,6 +142,11 @@ def calibrate_mask(
     print(f"Progressive Mask Calibration - Strategy: {strategy}")
     print("*" * 50)
 
+    if strategy in ["random", "magnitude_most", "magnitude_least"] and rounds > 1:
+        print(
+            f"WARNING: '{strategy}' does not require multiple rounds. Consider using rounds=1."
+        )
+
     model.to(device)
 
     mask = {
@@ -181,39 +186,88 @@ def calibrate_mask(
         )
 
         total_params = all_scores.numel()
-        total_active_params = active_scores.numel() - 1
+        total_active_params = active_scores.numel()
 
         keep_fraction = (inv_sparsity) ** (r / rounds)
         # this decreases at each round (it indicates the number of params with mask=1), we want to increase the number of zeroed params at each round and decrease the number of one params
         k = int(keep_fraction * total_params)
         print(f"Current keep fraction: {keep_fraction:.4f} | Keeping only top k: {k}")
 
-        if strategy == "train_least_important":
+        if strategy == "train_least_important":  # prune low fisher scores
+            k = max(1, min(k, total_active_params))
 
-            threshold, _ = torch.kthvalue(
-                active_scores,
-                min(
-                    k,
-                    total_active_params,
-                ),
-            )
+            threshold, _ = torch.kthvalue(active_scores, k)
             print("Threshold (below which params are kept):", threshold)
 
             # set as trainable (mask=1) all parameters with scores below this threshold
             for name, score in scores.items():
-
                 new_mask = (score <= threshold).float()
                 mask[name] = mask[name] * new_mask  # retain previously zeroed params
 
-        elif strategy == "train_most_important":
-            raise NotImplementedError()
-            # select the k-th largest score as the threshold
-            # ....
+        elif strategy == "train_most_important":  # prune high fisher scores
+            k = max(1, min(k, total_active_params))
+
+            threshold, _ = torch.kthvalue(active_scores, total_active_params - k + 1)
+            print("Threshold (above which params are kept):", threshold)
 
             # set as trainable (mask=1) all parameters with scores above this threshold
             for name, score in scores.items():
                 new_mask = (score >= threshold).float()
-                mask[name] = mask[name] * new_mask  # retain previously zeroed params
+                mask[name] = mask[name] * new_mask
+
+        elif (
+            strategy == "random"
+        ):  # prune using a random threshold inside each tensor, this method is one-shot,
+            i = 0
+            for name, score in scores.items():
+                random_score = torch.rand_like(score)
+
+                k = int(sparsity * random_score.numel())
+
+                threshold, _ = torch.kthvalue(random_score.flatten(), max(1, k))
+                if i == 0:
+                    print("Random Threshold (below which params are kept):", threshold)
+
+                new_mask = (random_score > threshold).float()
+                mask[name] = new_mask
+
+                i += 1
+
+        elif strategy == "magnitude_least":  # prune low magnitude params, one-shot
+
+            # Keep smallest weights by absolute value
+            all_weights = torch.cat(
+                [param.abs().flatten() for _, param in model.named_parameters()]
+            )
+            k = int(keep_fraction * all_weights.numel())
+            k = max(1, k)
+
+            threshold, _ = torch.kthvalue(all_weights, k)
+            print("Magnitude threshold (keep smallest):", threshold)
+
+            for name, param in model.named_parameters():
+                weight = param.detach().abs()
+                new_mask = (weight <= threshold).float()
+                mask[name] = mask[name] * new_mask
+
+        elif (
+            strategy == "magnitude_most"
+        ):  # prune using high magnitude params, one-shot
+
+            # Keep largest weights by absolute value
+            all_weights = torch.cat(
+                [param.abs().flatten() for _, param in model.named_parameters()]
+            )
+            k = int(keep_fraction * all_weights.numel())
+            k = max(1, k)
+
+            threshold, _ = torch.kthvalue(all_weights, all_weights.numel() - k + 1)
+            print("Magnitude threshold (keep largest):", threshold)
+
+            for name, param in model.named_parameters():
+                weight = param.detach().abs()
+                new_mask = (weight >= threshold).float()
+                mask[name] = mask[name] * new_mask
 
         else:
             raise ValueError(f"Unknown strategy: {strategy}")

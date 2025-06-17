@@ -2,6 +2,18 @@
     {
         "config": {
             "batch_size": 64,
+            "lr": 0.005,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7330999970436096
+    },
+    {
+        "config": {
+            "batch_size": 64,
             "lr": 0.01,
             "weight_decay": 0.0005,
             "momentum": 0.9,
@@ -11,6 +23,7 @@
         },
         "val_metric": 0.7329999804496765
     },
+    
     {
         "config": {
             "batch_size": 64,
@@ -70,5 +83,29 @@
             "num_workers": 4
         },
         "val_metric": 0.7135000228881836
+    },
+    {
+        "config": {
+            "batch_size": 64,
+            "lr": 0.001,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7034000158309937
+    },
+    {
+        "config": {
+            "batch_size": 64,
+            "lr": 0.0005,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.6676999926567078
     }
 ]
