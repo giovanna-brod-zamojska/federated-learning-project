@@ -2,19 +2,36 @@ import torch
 from tqdm import tqdm
 from torch import nn
 from torch.utils.data import DataLoader
-from typing import Dict, Optional
+from typing import Dict, Optional, Union
 
 
-def _num_total_params(mask) -> int:
+def _num_total_params(mask: Union[torch.Tensor, Dict[str, torch.Tensor]]) -> int:
+    if isinstance(mask, torch.Tensor):
+        return mask.numel()
+
     return sum(t.numel() for t in mask.values())
 
 
-def _num_zero_params(mask) -> int:
+def _num_zero_params(mask: Union[torch.Tensor, Dict[str, torch.Tensor]]) -> int:
+    if isinstance(mask, torch.Tensor):
+        return (mask == 0.0).sum().item()
+
     return sum((t == 0).sum().item() for t in mask.values())
 
 
-def _compute_sparsity(mask) -> float:
+def _num_one_params(mask: Union[torch.Tensor, Dict[str, torch.Tensor]]):
+    if isinstance(mask, torch.Tensor):
+        return (mask == 1.0).sum().item()
+
+    return sum((t == 1.0).sum().item() for t in mask.values())
+
+
+def _compute_sparsity(mask: Union[torch.Tensor, Dict[str, torch.Tensor]]) -> float:
     return _num_zero_params(mask) / _num_total_params(mask)
+
+
+def _compute_num_trainable_params(mask) -> float:
+    return _num_one_params(mask) / _num_total_params(mask)
 
 
 def _compute_approximated_fisher_scores(
@@ -132,6 +149,7 @@ def calibrate_mask(
         for n, p in model.named_parameters()
         if p.requires_grad
     }
+    inv_sparsity = 1.0 - sparsity
 
     for r in range(1, rounds + 1):
         print(f"[Round {r}]")
@@ -157,27 +175,40 @@ def calibrate_mask(
 
         all_scores = torch.cat([v.flatten() for v in scores.values()])
 
-        keep_fraction = (1 - sparsity) ** (r / rounds)
+        # Select scores of currently unpruned params, scores[mask == 1.0],  # only unpruned params / trainable params
+        active_scores = torch.cat(
+            [score[mask[name] != 0].flatten() for name, score in scores.items()]
+        )
+
         total_params = all_scores.numel()
+        total_active_params = active_scores.numel() - 1
+
+        keep_fraction = (inv_sparsity) ** (r / rounds)
+        # this decreases at each round (it indicates the number of params with mask=1), we want to increase the number of zeroed params at each round and decrease the number of one params
         k = int(keep_fraction * total_params)
         print(f"Current keep fraction: {keep_fraction:.4f} | Keeping only top k: {k}")
 
         if strategy == "train_least_important":
 
-            # select the k-th smallest score as the threshold
-            threshold, _ = torch.kthvalue(all_scores, k)
-            print(f"Threshold: {threshold}")
+            threshold, _ = torch.kthvalue(
+                active_scores,
+                min(
+                    k,
+                    total_active_params,
+                ),
+            )
+            print("Threshold (below which params are kept):", threshold)
 
             # set as trainable (mask=1) all parameters with scores below this threshold
             for name, score in scores.items():
+
                 new_mask = (score <= threshold).float()
                 mask[name] = mask[name] * new_mask  # retain previously zeroed params
 
         elif strategy == "train_most_important":
             raise NotImplementedError()
             # select the k-th largest score as the threshold
-            threshold = torch.topk(all_scores, k, largest=True).values[-1]
-            print("Threshold:", threshold)
+            # ....
 
             # set as trainable (mask=1) all parameters with scores above this threshold
             for name, score in scores.items():
@@ -188,8 +219,7 @@ def calibrate_mask(
             raise ValueError(f"Unknown strategy: {strategy}")
 
         print(
-            f"After round {r} mask sparsity: {_compute_sparsity(mask):.4f} "
-            f"({_num_zero_params(mask)}/{_num_total_params(mask)} zeroed params)"
+            f"After round {r} | Adjusted mask (Old mask * New mask): Fraction trainable (1) {_compute_num_trainable_params(mask)} - sparsity (0): {_compute_sparsity(mask)}"
         )
         print()
 
