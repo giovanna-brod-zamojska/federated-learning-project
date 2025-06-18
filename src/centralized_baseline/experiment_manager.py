@@ -9,6 +9,7 @@ from typing import Dict, Any, List, Tuple
 
 from src.centralized_baseline.trainer import BaseTrainer
 from src.centralized_baseline.dataset import CIFAR100Dataset
+from src.model_editing.mask_calibration import calibrate_mask
 
 
 class ExperimentManager:
@@ -63,6 +64,7 @@ class ExperimentManager:
         run_tags: List[str],
         metric_for_best_config: str = "accuracy",
         resume_training_from_config: int = None,
+        model_editing: bool = False,
     ) -> Tuple[Dict[str, Any], float]:
 
         results = []
@@ -125,6 +127,39 @@ class ExperimentManager:
 
             _, train_loader, val_loader, _ = self.setup_dataset(dataset, config)
 
+            if model_editing:
+                # Load model for mask calibration
+                model = torch.hub.load("facebookresearch/dino:main", "dino_vits16")
+                device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+                model.to(device)
+
+                sparsity = config.get("sparsity", 0.9)
+                num_batches = config.get("num_batches", None)
+                strategy = config.get("strategy", "train_least_important")
+                rounds = config.get("rounds", 5)
+                approximate_fisher = config.get("approximate_fisher", False)
+
+                mask = calibrate_mask(
+                    model,
+                    train_loader,
+                    device=device,
+                    sparsity=sparsity,
+                    rounds=rounds,
+                    num_batches=num_batches,
+                    strategy=strategy,
+                    approximate_fisher=approximate_fisher,
+                )
+                config["mask"] = mask
+                run_tags.extend(
+                    [
+                        f"sparsity{sparsity}",
+                        f"num_batches{num_batches}",
+                        f"strategy{strategy}",
+                        f"rounds{rounds}",
+                        f"approximateFisher{approximate_fisher}",
+                    ]
+                )
+
             trainer = trainer_class(
                 **config,
                 num_classes=dataset.get_num_labels(),
@@ -142,6 +177,7 @@ class ExperimentManager:
             if self.use_wandb:
                 wandb.finish()
 
+            del config["mask"]
             result = {"config": config, "val_metric": metric}
             results.append(result)
             results = sorted(results, key=lambda x: x["val_metric"], reverse=True)

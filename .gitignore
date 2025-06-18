@@ -3,6 +3,7 @@
 **/data_resized
 **/checkpoints
 **/wandb_logs
+**/extra_material
 
 # mac
 *.DS_Store
