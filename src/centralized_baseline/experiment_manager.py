@@ -65,6 +65,7 @@ class ExperimentManager:
         metric_for_best_config: str = "accuracy",
         resume_training_from_config: int = None,
         model_editing: bool = False,
+        test: bool = False,
     ) -> Tuple[Dict[str, Any], float]:
 
         results = []
@@ -125,7 +126,7 @@ class ExperimentManager:
                     reinit=True,  # Reinitialize WandB for each run
                 )
 
-            _, train_loader, val_loader, _ = self.setup_dataset(dataset, config)
+            _, train_loader, val_loader, test_loader = self.setup_dataset(dataset, config)
 
             if model_editing:
                 # Load model for mask calibration
@@ -185,6 +186,11 @@ class ExperimentManager:
             if metric and metric > best_metric:
                 best_metric = metric
                 best_config = config
+
+            if test:
+                test_metrics = trainer.test(
+                    test_loader
+                )
 
             print(
                 f"🏆Best config up to now: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric*100:.2f}%"

@@ -24,3 +24,42 @@ momentum: small effect but visible - best momentum 0.9 for all lr values
 (V14)
 
 and we carry out the final experiments by further varying the lr, and also varying the epochs (too see how much gain in accuracy we have bychoosing a higher number of epochs)
+
+results:src/notebooks/experiments_results/centralized-baseline/experiment_baseline_full_param_grid_search_v14.json
+
+best config:
+
+{
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 20,
+            "seed": 42,
+            "num_workers": 4,
+            "accum_steps": 1,
+            "optimizer_type": "SGD",
+            "augment": null
+        },
+        "val_metric": 0.7458999752998352
+    },
+
+
+Notice that the same setting with epoch=10 leads to slightly lower accuracy (the difference isnt that big):
+
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01,
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 10,
+            "seed": 42,
+            "num_workers": 4,
+            "accum_steps": 1,
+            "optimizer_type": "SGD",
+            "augment": null
+        },
+        "val_metric": 0.7418000102043152
+    },
