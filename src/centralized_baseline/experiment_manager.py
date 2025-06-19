@@ -180,7 +180,7 @@ class ExperimentManager:
             if self.use_wandb:
                 wandb.finish()
 
-            if model_editing:
+            if model_editing is True:
                 del config["mask"]
 
             result = {"config": config, "val_metric": metric}
