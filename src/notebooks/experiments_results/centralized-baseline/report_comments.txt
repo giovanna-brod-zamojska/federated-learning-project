@@ -10,7 +10,8 @@ momentum = [0.8, 0.9]
 wd = [0.0005, 0, 0.001, 0.0001]
 lr = [0.001, 0.005, 0.01]
 
-
+Results:
+src/notebooks/experiments_results/centralized-baseline/experiment_results_baseline_test_convergence_v8.json
 
 we noticed that , for all learning rates:
 
@@ -19,47 +20,7 @@ weight decay: little or no effect - therefore we choose to fix it to 5e-4, which
 momentum: small effect but visible - best momentum 0.9 for all lr values
 
 
-(V9)
-
-here we further explored momentum to see if further increasing it [0.9 -> 0.95] gives best results.
-But 0.9 was confirmed to be the best
-
-
-here we also further explore here the effect of learning rate: has the most higher effect on the learning curve and its strictly related to the batch size
-(different batch sizes may require a different lr to reach the best result)
-But when choosing the best/proper lr for each batch size, the final effect of the batch size is small/negligible:
-
-
-    {
-        "config": {
-            "batch_size": 64,
-            "lr": 0.005, # out of 0.005, 0.01, 0.05, 0.1, 0.001
-            "weight_decay": 0.0005,
-            "momentum": 0.9,
-            "epochs": 5,
-            "seed": 42,
-            "num_workers": 4
-        },
-        "val_metric": 0.7330999970436096
-    }
-    {
-        "config": {
-            "batch_size": 128,
-            "lr": 0.01, # 0.05, 0.1, 0.1
-            "weight_decay": 0.0005,
-            "momentum": 0.9,
-            "epochs": 5,
-            "seed": 42,
-            "num_workers": 4
-        },
-        "val_metric": 0.7357000112533569
-    }
-
-
-we therefore fixed weight decay and momentum. 
-we choose batch 128 because it is leads to faster training,
-
-and we carry out the final experiments by further varying the lr, and also varying the epochs (too see how much gain in accuracy we have bychoosing a higher number of epochs)
-
 
 (V14)
+
+and we carry out the final experiments by further varying the lr, and also varying the epochs (too see how much gain in accuracy we have bychoosing a higher number of epochs)

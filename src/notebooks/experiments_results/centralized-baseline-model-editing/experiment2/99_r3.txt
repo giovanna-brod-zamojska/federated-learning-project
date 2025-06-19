@@ -1,0 +1,17 @@
+{
+    "batch_size": 128,
+    "lr": 0.01,
+    "weight_decay": 0.0005,
+    "momentum": 0.9,
+    "epochs": 10,
+    "seed": 42,
+    "num_workers": 4,
+    "accum_steps": 1,
+    "optimizer_type": "SparseSGD",
+    "augment": null,
+    "sparsity": 0.99,
+    "rounds": 3,
+    "num_batches": null,
+    "strategy": "train_least_important",
+    "approximate_fisher": true
+} with validation accuracy: 76.72%
