@@ -126,7 +126,9 @@ class ExperimentManager:
                     reinit=True,  # Reinitialize WandB for each run
                 )
 
-            _, train_loader, val_loader, test_loader = self.setup_dataset(dataset, config)
+            _, train_loader, val_loader, test_loader = self.setup_dataset(
+                dataset, config
+            )
 
             if model_editing:
                 # Load model for mask calibration
@@ -178,7 +180,9 @@ class ExperimentManager:
             if self.use_wandb:
                 wandb.finish()
 
-            del config["mask"]
+            if model_editing:
+                del config["mask"]
+
             result = {"config": config, "val_metric": metric}
             results.append(result)
             results = sorted(results, key=lambda x: x["val_metric"], reverse=True)
@@ -188,9 +192,7 @@ class ExperimentManager:
                 best_config = config
 
             if test:
-                test_metrics = trainer.test(
-                    test_loader
-                )
+                test_metrics = trainer.test(test_loader)
 
             print(
                 f"🏆Best config up to now: {json.dumps(best_config, indent=4)} with validation {metric_for_best_config}: {best_metric*100:.2f}%"
