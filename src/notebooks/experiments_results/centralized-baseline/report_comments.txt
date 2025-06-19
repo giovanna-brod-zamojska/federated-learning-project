@@ -44,7 +44,8 @@ best config:
         },
         "val_metric": 0.7458999752998352
     },
-
+Test accuracy = 74.62%
+----
 
 Notice that the same setting with epoch=10 leads to slightly lower accuracy (the difference isnt that big):
 
@@ -62,4 +63,28 @@ Notice that the same setting with epoch=10 leads to slightly lower accuracy (the
             "augment": null
         },
         "val_metric": 0.7418000102043152
-    },
+    }, 
+    test accuracy = 74.79%
+
+------
+
+Notice.
+
+Our results maybe do not outperform the literature (search  papers on performances reached by other people with vits16 on cifar100)
+
+but it should also be considered that we apply simple transformations (mention it):
+
+ self.train_transform = transforms.Compose(
+            [
+                transforms.RandomResizedCrop(224),
+                transforms.RandomHorizontalFlip(),
+                transforms.ToTensor(),
+                transforms.Normalize(
+                    mean=[0.485, 0.456, 0.406], std=[0.229, 0.224, 0.225]
+                ),
+            ]
+        )
+A part from resizing and normalizing which is needed, we apply only RandomHorziontalFlip to augment the dataset and reduce the possibility of overfitting it by having moer varying data.
+no rand augment, no mixup or other more complicated processing techniques which can improve performance
+
+(WE didnt apply such other complicated technqieu becaue of the amount of overhead they provided when iterating over the dataloader)
