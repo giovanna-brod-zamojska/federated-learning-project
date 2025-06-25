@@ -5,6 +5,9 @@
 **/wandb_logs
 **/extra_material
 
+src/notebooks/experiments_results/centralized-baseline-model-editing/experiment1
+src/notebooks/experiments_results/centralized-baseline/comments_v9.txt
+
 # mac
 *.DS_Store
 

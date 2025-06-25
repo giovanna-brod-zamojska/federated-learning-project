@@ -148,3 +148,47 @@ REsult it that batch size 128 with lr 0.01 has the highest validation accuracy f
         },
         "val_metric": 0.7357000112533569
     },
+
+
+
+
+(V9)
+
+here we further explored momentum to see if further increasing it [0.9 -> 0.95] gives best results.
+But 0.9 was confirmed to be the best
+
+
+here we also further explore here the effect of learning rate: has the most higher effect on the learning curve and its strictly related to the batch size
+(different batch sizes may require a different lr to reach the best result)
+But when choosing the best/proper lr for each batch size, the final effect of the batch size is small/negligible:
+
+
+    {
+        "config": {
+            "batch_size": 64,
+            "lr": 0.005, # out of 0.005, 0.01, 0.05, 0.1, 0.001
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7330999970436096
+    }
+    {
+        "config": {
+            "batch_size": 128,
+            "lr": 0.01, # 0.05, 0.1, 0.1
+            "weight_decay": 0.0005,
+            "momentum": 0.9,
+            "epochs": 5,
+            "seed": 42,
+            "num_workers": 4
+        },
+        "val_metric": 0.7357000112533569
+    }
+
+
+we therefore fixed weight decay and momentum. 
+we choose batch 128 because it is leads to faster training,
+
