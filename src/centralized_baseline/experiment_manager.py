@@ -22,7 +22,7 @@ class ExperimentManager:
         self,
         param_grid: List[Dict[str, Any]],
         use_wandb: bool = False,
-        project_name: str = "federated-learning-project-TEST",
+        project_name: str = "federated-learning-project",
         group_name: str = "centralized_baseline",
         checkpoint_dir: str = "./checkpoints",
     ):

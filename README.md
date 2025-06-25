@@ -1,44 +1,15 @@
 # federated-learning-project
 
-# Clone the repo
+# Notebooks
 
-git clone https://github.com/giovanna-brod-zamojska/federated-learning-project.git
+All our experiments were carried out on Google Colab using the following notebooks:
 
-# Before running
+- src/notebooks/centralized-baseline-training.ipynb: notebook for training and evaluating the Centralized Baseline model
 
-if not already installed,
+- src/notebooks/centralized-baseline-model-editing.ipynb: notebook for training and evaluating the Centralized Baseline model when sparse finetuning is applied using a mask calibration strategy that considers as trainable a subset of the k least important parameters, importance computed using an approximated version of the Fisher Information Matrix (FIM)
 
-comment Giovanna: Python 3.11 is the colab version of python of google colab by default, so for now lets stick on it
+- src/notebooks/Federated_Learning_decentralized_baseline.ipynb: notebook for training and evaluating the Federated Averaged  models, under both IID and NON-IID settings, when sparse finetuning is applied using a mask calibration strategy that considers as trainable a subset of the k least important parameters, importance computed using an approximated version of the Fisher Information Matrix (FIM)
 
-- download python version 3.11 (https://www.python.org/downloads)
-- python3.11 -m venv venv
-- (macos) source venv/bin/activate | (windows) venv/Scripts/activate
-- pip install --upgrade pip
-- pip install -r requirements.txt
+- src/notebooks/personal_contribution_iid.ipynb: notebook for training and evaluating the Federated Averaged model under IID setting, when sparse finetuning is applied considering different mask calibration strategies 
 
-# Running scripts
-
-- cd src
-- python main.py
-
-# Running notebooks
-
-Go to https://colab.research.google.com/
-Select: Github >
-Then:
-
-- Past the repository URL or select the user or the organization account that created the repo
-- Select the Repository name
-- Select the Branch of the notebooks you want to run
-- Open the notebook of your interest and run it
-
-When doing so, only the notebook is uploaded in that current runtime session.
-Google colab isn't synchronizing with the whole repo, unfortunately.
-Therefore, inside the notebook runtime, you need to reclone the entire repository.
-
-At the moment our repository is private, so in the notebook you will be prompted to enter a Github Personal Access Token that has access to that repo.
-
-To create a Personal Access Token:
-Go on github: Setting > Developer Settings > Personal Access Tokens > Generate a new token
-Give to it at least Read-only permissions on the "Contents" section under "Permissions"
-
+- src/notebooks/personal_contribution_non_iid.ipynb: notebook for training and evaluating the Federated Averaged model under NON-IID setting, when sparse finetuning is applied considering different mask calibration strategies 
